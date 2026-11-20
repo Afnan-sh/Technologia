@@ -1,0 +1,317 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  password            String         @default("technologia123")
+  name                String
+  role                String         @default("USER") // Single standard account type
+  isVerifiedShop      Boolean        @default(false)
+  shopName            String?
+  shopAddress         String?
+  businessHours       String?
+  phone               String?
+  whatsappNumber      String?
+  city                String         @default("Lahore")
+  avatarUrl           String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  listings            Listing[]
+  requests            PartRequest[]
+  reviewsGiven        Review[]       @relation("ReviewsGiven")
+  reviewsReceived     Review[]       @relation("ReviewsReceived")
+  savedListings       SavedListing[]
+  savedSearches       SavedSearch[]
+  chatBuyerSessions   ChatSession[]  @relation("ChatBuyer")
+  chatSellerSessions  ChatSession[]  @relation("ChatSeller")
+
+  @@map("users")
+}
+
+model DeviceCatalog {
+  id                 String        @id @default(cuid())
+  category           String        // "LAPTOP" or "PHONE"
+  brand              String        // Phone: "Apple", "Samsung", "Google", "Xiaomi", "Huawei", "Nothing" | Laptop: "Apple", "Dell", "Lenovo", "HP", "Asus", "Acer", "Google"
+  model              String        // e.g. "iPhone 13 Pro", "Galaxy S22 Ultra", "ThinkPad T480"
+  releaseYear        Int?          // e.g. 2021
+  imageUrl           String?
+
+  // Display & Body Specs
+  screenSize         String?       // "6.1 inches", "14.0 inches"
+  resolution         String?       // "1170 x 2532 pixels", "1920 x 1080 FHD"
+  displayTech        String?       // "Super Retina XDR OLED, 120Hz, HDR10", "IPS Matte Anti-glare 300 nits"
+  bodyDimensions     String?       // "146.7 x 71.5 x 7.7 mm"
+  weight             String?       // "204 g", "1.58 kg"
+  buildMaterial      String?       // "Glass front (Ceramic Shield), stainless steel frame, IP68", "Magnesium alloy & aluminum"
+
+  // Platform & Hardware Specs
+  chipset            String?       // "Apple A15 Bionic (5 nm)", "Intel Core i5-8250U / i7-8550U"
+  cpuDetails         String?       // "Hexa-core (2x3.22 GHz Avalanche + 4x1.82 GHz Blizzard)", "4 Cores, 8 Threads, up to 4.0 GHz"
+  gpuDetails         String?       // "Apple GPU (5-core graphics)", "Intel UHD Graphics 620"
+  os                 String?       // "iOS 15, upgradable to iOS 18", "Windows 11 Pro / Ubuntu Linux"
+
+  // Memory & Fixed Manufacturer Variants
+  ramOptions         String?       // JSON: "[6]" or "[8, 12]" or "[8, 16, 32, 64]"
+  storageOptions     String?       // JSON: "[\"128GB\", \"256GB\", \"512GB\", \"1TB\"]"
+  ramLimits          String?       // "Fixed 6GB LPDDR4X (Soldered)" or "Base 8GB, Up to 64GB DDR4 (2x SO-DIMM)"
+  cardSlot           String?       // "No", "microSDXC (dedicated slot)"
+
+  // Camera Specs (Phones)
+  mainCamera         String?       // "12 MP (wide) f/1.5 OIS + 12 MP (telephoto) 3x OIS + 12 MP (ultrawide)"
+  mainCameraFeatures String?       // "Dual-LED dual-tone flash, HDR, 4K@60fps, 10-bit HDR, Cinematic mode"
+  selfieCamera       String?       // "12 MP, f/2.2, 23mm (wide), 4K@60fps"
+  cameraSummary      String?       // "12MP Triple + OIS", "108MP Quad + OIS", "50MP Dual"
+
+  // Battery & Charging Specs
+  batteryCapacity    String?       // "3095 mAh", "48Wh dual battery (24Wh internal + 24Wh hot-swap)"
+  chargingSpeed      String?       // "23W wired (50% in 30m), 15W MagSafe", "65W USB-C RapidCharge"
+
+  // Connectivity, Sound & Extra Specs
+  network            String?       // "GSM / CDMA / HSPA / EVDO / LTE / 5G"
+  comms              String?       // "Wi-Fi 6, Bluetooth 5.0, NFC, Lightning / USB-C"
+  sound              String?       // "Stereo speakers, Dolby Atmos, No 3.5mm jack", "Dolby Audio Premium stereo speakers, 3.5mm jack"
+  security           String?       // "Face ID, Ultra Wideband (UWB)", "Match-on-Chip Fingerprint, ThinkShutter webcam"
+
+  // Legacy fields kept for compatibility:
+  defaultScreen      String?
+  cpuGeneration      String?
+  supportedRamType   String?
+  supportedStorage   String?
+
+  parts              PartCatalog[]
+  listings           Listing[]
+  requests           PartRequest[]
+  createdAt          DateTime      @default(now())
+
+  @@map("master_devices")
+}
+
+model PartCatalog {
+  id                 String        @id @default(cuid())
+  deviceId           String
+  device             DeviceCatalog @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  partType           String        // "Screen Panel", "Battery", "Keyboard", "Charging Flex", "Motherboard", "Heatsink / Fan"
+  name               String        // e.g. "30-pin FHD Matte IPS Panel"
+  partNumber         String?       // e.g. "01AV421", "B140HAN01.3"
+  compatibilityNotes String?
+  suggestedPricePKR  Int?
+  listings           Listing[]
+  requests           PartRequest[]
+  createdAt          DateTime      @default(now())
+}
+
+model Listing {
+  id               String         @id @default(cuid())
+  title            String
+  category         String         // "LAPTOP" | "PHONE"
+  itemType         String         // "COMPLETE_UNIT" | "SPARE_PART"
+  deviceId         String?
+  device           DeviceCatalog? @relation(fields: [deviceId], references: [id])
+  partCatalogId    String?
+  partCatalog      PartCatalog?   @relation(fields: [partCatalogId], references: [id])
+  userId           String?
+  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brand            String
+  model            String
+  partName         String?
+  partNumber       String?
+  price            Int            // PKR
+  condition        String         // "Brand New", "Like New (10/10)", "Used - Good (8-9/10)", "Faulty / For Parts"
+  ptaStatus        String?        // "Official PTA Approved", "CPID / Patch Approved", "Non-PTA / Physical SIM Locked (JV)", "eSIM Only"
+  batteryHealth    Int?           // Battery percentage (e.g. 87)
+  ramGB            Int?           // e.g. 6, 8, 16, 32
+  storage          String?        // e.g. "256GB NVMe SSD" or "128GB"
+  cameraSpec       String?        // e.g. "12MP Triple OIS" (phones)
+  screenSize       String?        // e.g. "6.1 inches" or "14.0 inches"
+  specsLockedNotes String?        // Auto-locked catalog specs notes
+  city             String         // "Lahore", "Karachi", "Islamabad", "Rawalpindi", "Peshawar", "Multan"
+  locationArea     String         // "Hafeez Centre", "Saddar", "Blue Area", "Hall Road", "Dubai Plaza"
+  sellerName       String
+  sellerPhone      String
+  whatsappNumber   String         // Clean phone digits for wa.me
+  description      String
+  images           String         // JSON stringified array of image URLs
+  isFeatured       Boolean        @default(false)
+  viewsCount       Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  reviews          Review[]
+  savedBy          SavedListing[]
+  chatSessions     ChatSession[]
+
+  @@map("listings")
+}
+
+model PartRequest {
+  id                   String         @id @default(cuid())
+  title                String
+  category             String         // "LAPTOP" | "PHONE"
+  deviceId             String?
+  device               DeviceCatalog? @relation(fields: [deviceId], references: [id])
+  partCatalogId        String?
+  partCatalog          PartCatalog?   @relation(fields: [partCatalogId], references: [id])
+  userId               String?
+  user                 User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brand                String
+  model                String
+  partType             String
+  partNumber           String?
+  acceptableConditions String         // JSON array string: e.g. ["Brand New (OEM)", "Working Pull / Used"]
+  maxBudgetPKR         Int
+  urgency              String         // "Urgent / Immediate" | "Flexible"
+  description          String
+  photoUrl             String?
+  buyerName            String
+  buyerPhone           String
+  buyerWhatsapp        String
+  city                 String
+  locationArea         String?
+  status               String         @default("OPEN") // "OPEN", "FULFILLED", "CLOSED"
+  quotes               RequestQuote[]
+  chatSessions         ChatSession[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@map("part_requests")
+}
+
+model RequestQuote {
+  id             String      @id @default(cuid())
+  requestId      String
+  request        PartRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  offeredPrice   Int         // PKR
+  condition      String
+  notes          String
+  photoUrl       String?
+  sellerName     String
+  sellerPhone    String
+  sellerWhatsapp String
+  city           String
+  createdAt      DateTime    @default(now())
+
+  @@map("request_quotes")
+}
+
+model Review {
+  id                  String    @id @default(cuid())
+  reviewerId          String
+  reviewer            User      @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId          String
+  reviewee            User      @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+  listingId           String?
+  listing             Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  
+  // Specific review criteria (as requested)
+  itemAsDescribed     Boolean   // Yes / No
+  communicationRating Int       // 1 - 5 scale
+  undisclosedFaults   Boolean   // Yes / No (False = clean, no hidden faults; True = undisclosed faults found)
+  comment             String?
+  createdAt           DateTime  @default(now())
+
+  @@map("reviews")
+}
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@map("saved_listings")
+}
+
+model SavedSearch {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String   // e.g. "ThinkPad T480 16GB in Lahore"
+  criteria      String   // JSON string of active filters: category, brand, ram, maxPrice, city, etc.
+  targetType    String   @default("LISTING") // "LISTING" | "REQUEST"
+  alertEmail    Boolean  @default(true)
+  lastCheckedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@map("saved_searches")
+}
+
+model ChatSession {
+  id             String               @id @default(cuid())
+  listingId      String?
+  listing        Listing?             @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  requestId      String?
+  request        PartRequest?         @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  buyerId        String?
+  buyer          User?                @relation("ChatBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  sellerId       String?
+  seller         User?                @relation("ChatSeller", fields: [sellerId], references: [id], onDelete: SetNull)
+  title          String
+  buyerName      String
+  sellerName     String
+  sellerWhatsapp String?
+  itemPrice      Int?
+  itemCity       String?
+  lastMessage    String?
+  lastMessageAt  DateTime             @default(now())
+  unreadBuyer    Int                  @default(0)
+  unreadSeller   Int                  @default(0)
+  messages       ChatSessionMessage[]
+  createdAt      DateTime             @default(now())
+
+  @@map("chat_sessions")
+}
+
+model ChatSessionMessage {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderRole String      // "BUYER" | "SELLER"
+  senderName String
+  senderId   String?
+  text       String
+  isPrompt   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@map("chat_session_messages")
+}
+
+// Legacy tables kept for safe migration
+model ChatThread {
+  id             String        @id @default(cuid())
+  title          String
+  entityType     String        // "LISTING" | "REQUEST"
+  entityId       String
+  buyerName      String
+  sellerName     String
+  sellerWhatsapp String?
+  itemPrice      Int?
+  itemCity       String?
+  lastMessage    String?
+  lastMessageAt  DateTime      @default(now())
+  unreadBuyer    Int           @default(0)
+  unreadSeller   Int           @default(0)
+  messages       ChatMessage[]
+  createdAt      DateTime      @default(now())
+}
+
+model ChatMessage {
+  id          String     @id @default(cuid())
+  threadId    String
+  thread      ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderRole  String     // "BUYER" | "SELLER"
+  senderName  String
+  text        String
+  isPrompt    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+}
