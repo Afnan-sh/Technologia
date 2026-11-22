@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CatalogPicker, { SelectedCatalogData } from '@/components/CatalogPicker';
 import { 
@@ -23,6 +23,10 @@ import {
   DEFAULT_IMAGES 
 } from '@/lib/utils';
 import FeatureAdToggle from '@/components/FeatureAdToggle';
+import { createListingAction } from '@/app/actions/listings';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 function PostAdForm() {
   const router = useRouter();
@@ -74,7 +78,7 @@ function PostAdForm() {
   const handleCatalogChange = (data: SelectedCatalogData) => {
     setCatalogData(data);
 
-    // Title MUST strictly be the Device Name (or part name for model)
+    // Title strictly formatted
     if (data.itemType === 'SPARE_PART' && data.partName) {
       setTitle(`${data.partName} for ${data.brand} ${data.model}`);
     } else {
@@ -91,7 +95,6 @@ function PostAdForm() {
         : ['128GB', '256GB', '512GB'];
       setStorage(phoneStorages[0]);
     } else {
-      // Laptop: default to 16GB RAM and 512GB NVMe SSD
       if (!ramGB || ramGB === '6') setRamGB('16');
       if (!storage || storage === '128GB') setStorage('512GB NVMe SSD');
     }
@@ -131,13 +134,15 @@ function PostAdForm() {
     setErrorMessage('');
 
     if (!title || !price || !sellerName || !sellerPhone || !city) {
-      setErrorMessage('Please fill in all required fields (Title, Price, Seller Name, Phone, City)');
+      const msg = 'Please fill in all required fields (Title, Price, Seller Name, Phone, City)';
+      setErrorMessage(msg);
+      toast.error(msg);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const payload: any = {
+      const res = await createListingAction({
         title,
         category: catalogData.category,
         itemType: catalogData.itemType,
@@ -158,33 +163,27 @@ function PostAdForm() {
         locationArea,
         sellerName,
         sellerPhone,
-        whatsappNumber: sellerPhone.replace(/[^0-9]/g, ''),
         description,
         isFeatured,
         images: images.length > 0 ? images : [
           catalogData.category === 'LAPTOP' ? DEFAULT_IMAGES.laptop : DEFAULT_IMAGES.phone
         ],
-      };
-
-      if (catalogData.category === 'PHONE') {
-        payload.ptaStatus = ptaStatus;
-        if (batteryHealth) payload.batteryHealth = parseInt(batteryHealth);
-      }
-
-      const res = await fetch('/api/listings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        ptaStatus: catalogData.category === 'PHONE' ? ptaStatus : undefined,
+        batteryHealth: catalogData.category === 'PHONE' && batteryHealth ? parseInt(batteryHealth) : undefined,
       });
 
-      const data = await res.json();
-      if (data.success && data.listing) {
-        router.push(`/listings/${data.listing.id}`);
+      if (res.success && res.data) {
+        toast.success('Ad published successfully to marketplace!');
+        router.push(`/listings/${res.data.id}`);
       } else {
-        setErrorMessage(data.error || 'Failed to publish listing');
+        const err = res.error || 'Failed to publish listing';
+        setErrorMessage(err);
+        toast.error(err);
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Network error creating ad');
+    } catch {
+      const err = 'Network error publishing listing';
+      setErrorMessage(err);
+      toast.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -192,7 +191,6 @@ function PostAdForm() {
 
   const currentMarkets = CITY_MARKETS[city] || ['Main Tech Centre', 'Other Market'];
 
-  // Phone variants
   const phoneRams = catalogData.ramOptions && catalogData.ramOptions.length > 0 
     ? catalogData.ramOptions 
     : [6];
@@ -204,14 +202,14 @@ function PostAdForm() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
             CATALOG-FIRST AD POSTING
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-2">
           Post Hardware or Spare Part Ad
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
           Lock verified hardware attributes from our 10-year master catalog registry. Clean titles, strict variants for phones, and upgradeable options for laptops.
         </p>
       </div>
@@ -239,7 +237,7 @@ function PostAdForm() {
         </section>
 
         {/* Step 2: Listing Title & Price */}
-        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4 shadow-xs">
+        <section className="bg-white border border-gray-200/90 rounded-2xl p-6 space-y-4 shadow-2xs">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 border-b border-gray-100 pb-3">
             <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">2</span>
             <span>Pricing & Hardware Configuration</span>
@@ -250,13 +248,13 @@ function PostAdForm() {
               <span>Ad Title (Clean Device Name) <span className="text-red-500">*</span></span>
               <span className="text-[10px] text-slate-400">Specs and condition are displayed as clean tags</span>
             </label>
-            <input
+            <Input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Samsung Galaxy S22 Ultra"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-semibold"
+              className="font-semibold"
             />
           </div>
 
@@ -266,14 +264,14 @@ function PostAdForm() {
                 Asking Price (PKR) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs font-mono text-slate-400">PKR</span>
-                <input
+                <span className="absolute left-3.5 top-2.5 text-xs font-mono text-slate-400">PKR</span>
+                <Input
                   type="number"
                   required
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="e.g. 68500"
-                  className="w-full pl-12 pr-4 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-bold"
+                  className="pl-14 font-mono font-bold"
                 />
               </div>
             </div>
@@ -285,7 +283,7 @@ function PostAdForm() {
               <select
                 value={condition}
                 onChange={(e) => setCondition(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               >
                 {CONDITION_OPTIONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -294,10 +292,10 @@ function PostAdForm() {
             </div>
           </div>
 
-          {/* DYNAMIC SPECS LOGIC: PHONES (Strict Variants) vs LAPTOPS (Upgradeable) */}
+          {/* DYNAMIC SPECS LOGIC: PHONES vs LAPTOPS */}
           {catalogData.category === 'PHONE' ? (
             <div className="space-y-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2 bg-blue-50/60 border border-blue-200/60 p-2.5 rounded-xl text-xs text-blue-900">
+              <div className="flex items-center gap-2 bg-blue-50/60 border border-blue-200/60 p-3 rounded-xl text-xs text-blue-900">
                 <Lock className="w-4 h-4 text-blue-600 flex-shrink-0" />
                 <span>
                   <strong>Strict Phone Variants:</strong> RAM and Storage are constrained strictly to verified manufacturer releases for <strong>{catalogData.brand} {catalogData.model}</strong>.
@@ -313,13 +311,13 @@ function PostAdForm() {
                       <span>Manufacturer RAM</span>
                     </span>
                     {phoneRams.length === 1 && (
-                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-mono">
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
                         Fixed Spec
                       </span>
                     )}
                   </label>
                   {phoneRams.length === 1 ? (
-                    <div className="px-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 text-slate-700 font-mono font-bold flex items-center justify-between">
+                    <div className="px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50 text-slate-700 font-mono font-bold flex items-center justify-between shadow-2xs">
                       <span>{phoneRams[0]} GB RAM</span>
                       <Lock className="w-3.5 h-3.5 text-slate-400" />
                     </div>
@@ -327,7 +325,7 @@ function PostAdForm() {
                     <select
                       value={ramGB}
                       onChange={(e) => setRamGB(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium"
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium shadow-2xs"
                     >
                       {phoneRams.map((r) => (
                         <option key={r} value={r}>{r} GB RAM</option>
@@ -345,7 +343,7 @@ function PostAdForm() {
                   <select
                     value={storage}
                     onChange={(e) => setStorage(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium shadow-2xs"
                   >
                     {phoneStorages.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -367,7 +365,7 @@ function PostAdForm() {
                   <select
                     value={ptaStatus}
                     onChange={(e) => setPtaStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-blue-200 bg-blue-50/30 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-blue-200 bg-blue-50/30 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium shadow-2xs"
                   >
                     {PTA_STATUSES.map((p) => (
                       <option key={p.id} value={p.id}>{p.label}</option>
@@ -380,14 +378,14 @@ function PostAdForm() {
                     <Battery className="w-3.5 h-3.5 text-blue-600" />
                     <span>Battery Health % (e.g. 88)</span>
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min={1}
                     max={100}
                     value={batteryHealth}
                     onChange={(e) => setBatteryHealth(e.target.value)}
                     placeholder="88"
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono"
+                    className="font-mono"
                   />
                 </div>
               </div>
@@ -395,7 +393,7 @@ function PostAdForm() {
           ) : (
             /* LAPTOP SPECIFICS: UPGRADEABLE LOGIC */
             <div className="space-y-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2 bg-emerald-50/60 border border-emerald-200/60 p-2.5 rounded-xl text-xs text-emerald-900">
+              <div className="flex items-center gap-2 bg-emerald-50/60 border border-emerald-200/60 p-3 rounded-xl text-xs text-emerald-900">
                 <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <span>
                   <strong>Upgradeable Laptop Hardware:</strong> Laptops can be customized. Specify your installed configuration below ({catalogData.ramLimits || 'SO-DIMM slots'}).
@@ -403,7 +401,6 @@ function PostAdForm() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Installed RAM (Flexible Upgraded Options) */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
                     <Cpu className="w-3.5 h-3.5 text-blue-600" />
@@ -412,7 +409,7 @@ function PostAdForm() {
                   <select
                     value={ramGB}
                     onChange={(e) => setRamGB(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium shadow-2xs"
                   >
                     <option value="8">8 GB RAM</option>
                     <option value="16">16 GB RAM (Standard)</option>
@@ -422,7 +419,6 @@ function PostAdForm() {
                   </select>
                 </div>
 
-                {/* Storage Type & Capacity */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
                     <HardDrive className="w-3.5 h-3.5 text-blue-600" />
@@ -431,7 +427,7 @@ function PostAdForm() {
                   <select
                     value={storage}
                     onChange={(e) => setStorage(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-medium shadow-2xs"
                   >
                     <option value="256GB NVMe SSD">256GB NVMe SSD</option>
                     <option value="512GB NVMe SSD">512GB NVMe SSD</option>
@@ -454,13 +450,13 @@ function PostAdForm() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mention original charger included, cosmetic marks, battery backup hours, 7-days shop checking warranty, test bench availability at Hafeez Centre..."
-              className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
             />
           </div>
         </section>
 
         {/* Step 3: Location & Seller WhatsApp */}
-        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4 shadow-xs">
+        <section className="bg-white border border-gray-200/90 rounded-2xl p-6 space-y-4 shadow-2xs">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 border-b border-gray-100 pb-3">
             <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">3</span>
             <span>Location & Direct WhatsApp Contact</span>
@@ -478,7 +474,7 @@ function PostAdForm() {
                   const markets = CITY_MARKETS[e.target.value] || [];
                   if (markets.length > 0) setLocationArea(markets[0]);
                 }}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               >
                 {PAKISTANI_CITIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -493,7 +489,7 @@ function PostAdForm() {
               <select
                 value={locationArea}
                 onChange={(e) => setLocationArea(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               >
                 {currentMarkets.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -507,13 +503,12 @@ function PostAdForm() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Seller / Shop Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 required
                 value={sellerName}
                 onChange={(e) => setSellerName(e.target.value)}
                 placeholder="e.g. Usman Tech Hub / Hafeez Centre Shop #45"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
@@ -521,27 +516,27 @@ function PostAdForm() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Phone / WhatsApp Number <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="tel"
                 required
                 value={sellerPhone}
                 onChange={(e) => setSellerPhone(e.target.value)}
                 placeholder="03001234567"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono"
+                className="font-mono"
               />
             </div>
           </div>
         </section>
 
         {/* Step 4: Multi-File Photo Uploads */}
-        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4 shadow-xs">
+        <section className="bg-white border border-gray-200/90 rounded-2xl p-6 space-y-4 shadow-2xs">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 border-b border-gray-100 pb-3">
             <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">4</span>
             <span>Photos & Inspection Preview</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold cursor-pointer transition-colors">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-2xs">
               <Upload className="w-4 h-4" />
               <span>Upload Device Photos</span>
               <input
@@ -556,7 +551,7 @@ function PostAdForm() {
             <button
               type="button"
               onClick={handleAddDefaultImage}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs text-slate-600 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 text-xs text-slate-600 hover:bg-gray-50 transition-colors shadow-2xs"
             >
               <span>+ Add Placeholder Image</span>
             </button>
@@ -565,17 +560,17 @@ function PostAdForm() {
           {images.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group bg-gray-100">
+                <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-200 group bg-gray-100 shadow-2xs">
                   <img src={img} alt="Preview" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1.5 right-1.5 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                   {idx === 0 && (
-                    <span className="absolute bottom-1.5 left-1.5 text-[9px] bg-slate-900/80 text-white px-1.5 py-0.5 rounded font-mono">
+                    <span className="absolute bottom-2 left-2 text-[10px] bg-slate-900/80 text-white px-2 py-0.5 rounded-md font-mono">
                       Cover
                     </span>
                   )}
@@ -586,7 +581,7 @@ function PostAdForm() {
         </section>
 
         {/* Step 5: Feature Ad Promotion (Mock) */}
-        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4 shadow-xs">
+        <section className="bg-white border border-gray-200/90 rounded-2xl p-6 space-y-4 shadow-2xs">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 border-b border-gray-100 pb-3">
             <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold">5</span>
             <span>Promote Your Listing</span>
@@ -600,14 +595,15 @@ function PostAdForm() {
 
         {/* Submit */}
         <div className="pt-2">
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 btn-tactile"
+            isLoading={isSubmitting}
+            size="lg"
+            className="w-full"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>{isSubmitting ? 'Publishing Ad...' : 'Publish Ad to Marketplace'}</span>
-          </button>
+            <PlusCircle className="w-4 h-4 mr-2" />
+            <span>Publish Ad to Marketplace</span>
+          </Button>
         </div>
       </form>
     </div>

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Sparkles, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { toggleFeatureListingAction } from '@/app/actions/listings';
 
 interface FeatureAdToggleProps {
   listingId?: string;
@@ -26,18 +28,17 @@ export default function FeatureAdToggle({
     if (listingId) {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/listings/${listingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isFeatured: nextState }),
-        });
-        const data = await res.json();
-        if (data.success) {
+        const res = await toggleFeatureListingAction(listingId);
+        if (res.success && res.data) {
+          setIsFeatured(res.data.isFeatured);
           setShowNotice(true);
+          toast.success(res.data.isFeatured ? 'Featured badge activated!' : 'Featured badge deactivated');
           setTimeout(() => setShowNotice(false), 4000);
+        } else {
+          toast.error(res.error || 'Failed to update featured status');
         }
-      } catch (e) {
-        console.error('Error toggling featured ad:', e);
+      } catch {
+        toast.error('Network error updating feature status');
       } finally {
         setIsLoading(false);
       }
@@ -48,7 +49,7 @@ export default function FeatureAdToggle({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2 shadow-xs">
+    <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2 shadow-2xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/60">
@@ -58,8 +59,8 @@ export default function FeatureAdToggle({
             <span className="text-xs font-bold text-slate-900 block">
               Featured Ad Promotion (Mock Payment Flow)
             </span>
-            <span className="text-[11px] text-slate-500">
-              Pin to the top of listings and add a featured badge
+            <span className="text-[11px] text-slate-500 block">
+              Top of grid placement &bull; Amber highlight badge &bull; 4x click-through
             </span>
           </div>
         </div>
@@ -68,13 +69,12 @@ export default function FeatureAdToggle({
           type="button"
           onClick={handleToggle}
           disabled={isLoading}
-          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
             isFeatured ? 'bg-amber-800' : 'bg-gray-200'
           }`}
-          aria-label="Toggle Featured Ad"
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
               isFeatured ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
@@ -82,12 +82,12 @@ export default function FeatureAdToggle({
       </div>
 
       {showNotice && (
-        <div className="text-[11px] text-amber-900 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5 animate-in fade-in">
-          <Check className="w-3.5 h-3.5 text-amber-800" />
+        <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-1.5 transition-all">
+          <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
           <span>
-            {isFeatured
-              ? 'Featured Ad active: this ad will be highlighted and pinned to the top!'
-              : 'Featured status removed.'}
+            {isFeatured 
+              ? 'Featured Ad activated! Simulated PKR 500 JazzCash payment processed.' 
+              : 'Featured badge removed.'}
           </span>
         </div>
       )}

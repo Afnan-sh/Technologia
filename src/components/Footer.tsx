@@ -58,12 +58,12 @@ export default function Footer() {
             </h4>
             <ul className="space-y-1.5 text-xs">
               <li>
-                <Link href="/buy/mobiles" className="text-slate-500 hover:text-blue-600 transition-colors">
+                <Link href="/listings?category=PHONE" className="text-slate-500 hover:text-blue-600 transition-colors">
                   &bull; Mobile Phones Catalog
                 </Link>
               </li>
               <li>
-                <Link href="/buy/laptops" className="text-slate-500 hover:text-blue-600 transition-colors">
+                <Link href="/listings?category=LAPTOP" className="text-slate-500 hover:text-blue-600 transition-colors">
                   &bull; Laptops & Ultrabooks
                 </Link>
               </li>

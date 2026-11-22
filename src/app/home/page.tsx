@@ -71,7 +71,7 @@ export default async function HomePage() {
           </p>
 
           {/* Clean Minimal Search Input */}
-          <form action="/buy/mobiles" method="GET" className="pt-2 max-w-xl mx-auto">
+          <form action="/listings" method="GET" className="pt-2 max-w-xl mx-auto">
             <div className="relative flex items-center bg-white border border-gray-200 rounded-xl p-1.5 shadow-xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent transition-all">
               <Search className="w-4 h-4 text-slate-400 ml-2.5 flex-shrink-0" />
               <input
@@ -92,14 +92,14 @@ export default async function HomePage() {
           {/* Quick Category Shortcuts */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
             <Link
-              href="/buy/mobiles"
+              href="/listings?category=PHONE"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-colors shadow-2xs font-medium"
             >
               <Smartphone className="w-3.5 h-3.5 text-blue-600" />
               <span>Mobile Phones</span>
             </Link>
             <Link
-              href="/buy/laptops"
+              href="/listings?category=LAPTOP"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-colors shadow-2xs font-medium"
             >
               <Laptop className="w-3.5 h-3.5 text-blue-600" />
@@ -140,7 +140,7 @@ export default async function HomePage() {
             </div>
           </div>
           <Link
-            href="/buy/mobiles"
+            href="/buy/phones"
             className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group"
           >
             <span>View all phones</span>

@@ -65,10 +65,11 @@ export async function POST(req: Request) {
       success: true,
       review,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error creating review';
     console.error('Error creating review:', error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -115,9 +116,10 @@ export async function GET(req: Request) {
       success: true,
       reviews,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error retrieving reviews';
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: message },
       { status: 500 }
     );
   }

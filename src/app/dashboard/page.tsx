@@ -11,31 +11,47 @@ import {
   ShieldCheck, 
   User as UserIcon, 
   Plus, 
-  Sparkles, 
   Trash2, 
   ExternalLink,
   MapPin,
   Clock,
   CheckCircle2,
-  AlertCircle,
   RefreshCw,
-  Send
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import ListingCard from '@/components/ListingCard';
+import ListingCard from '@/components/features/ListingCard';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatPKR, formatRelativeTime } from '@/lib/utils';
+import { ListingWithRelations } from '@/types';
+
+interface SavedSearchItem {
+  id: string;
+  name: string;
+  criteria: string;
+  targetType: string;
+  alertEmail: boolean;
+  createdAt: string | Date;
+}
+
+interface SimulationResultItem {
+  name: string;
+  matchCount: number;
+  simulatedAlert: string;
+}
 
 function DashboardContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'saved';
+  const initialTab = (searchParams.get('tab') as 'saved' | 'alerts' | 'listings' | 'reviews') || 'saved';
 
   const { user, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'saved' | 'alerts' | 'listings' | 'reviews'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'saved' | 'alerts' | 'listings' | 'reviews'>(initialTab);
 
-  const [savedListings, setSavedListings] = useState<any[]>([]);
-  const [savedSearches, setSavedSearches] = useState<any[]>([]);
-  const [myListings, setMyListings] = useState<any[]>([]);
-  const [simulationResults, setSimulationResults] = useState<any[] | null>(null);
+  const [savedListings, setSavedListings] = useState<ListingWithRelations[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearchItem[]>([]);
+  const [myListings, setMyListings] = useState<ListingWithRelations[]>([]);
+  const [simulationResults, setSimulationResults] = useState<SimulationResultItem[] | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -64,8 +80,8 @@ function DashboardContent() {
           setMyListings(dataUser.user.listings);
         }
       }
-    } catch (e) {
-      console.error('Error loading dashboard data:', e);
+    } catch {
+      toast.error('Error loading dashboard data');
     } finally {
       setLoadingData(false);
     }
@@ -81,9 +97,12 @@ function DashboardContent() {
       const data = await res.json();
       if (data.success) {
         setSavedSearches(prev => prev.filter(s => s.id !== id));
+        toast.success('Search alert deleted');
+      } else {
+        toast.error('Failed to delete search alert');
       }
-    } catch (e) {
-      console.error('Error deleting search:', e);
+    } catch {
+      toast.error('Network error deleting alert');
     }
   };
 
@@ -94,169 +113,109 @@ function DashboardContent() {
       const data = await res.json();
       if (data.success && data.alerts) {
         setSimulationResults(data.alerts);
+        toast.success('Simulation complete: Checked active listings');
       }
-    } catch (e) {
-      console.error('Error running alert simulation:', e);
+    } catch {
+      toast.error('Error running alert simulation');
     } finally {
       setSimulating(false);
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-xs text-slate-400">
-        Loading user session...
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto px-6 py-16 text-center space-y-4">
-        <UserIcon className="w-12 h-12 text-slate-300 mx-auto" />
-        <h2 className="text-xl font-extrabold text-slate-900">Sign in to view your Dashboard</h2>
-        <p className="text-xs text-slate-500">
-          Access your saved products, saved search alerts, active listings, and reputation reviews.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-xs"
-        >
-          Sign In / Select Demo Account
-        </Link>
-      </div>
-    );
-  }
-
-  const isVerifiedShop = user.isVerifiedShop || user.role === 'SHOPKEEPER';
-  const stats = user.stats || {
+  const stats = user?.stats || {
     trustScore: 100,
     reviewCount: 0,
     itemAsDescribedPct: 100,
     avgCommunication: 5.0,
     cleanFaultsPct: 100,
-    itemsSold: 0,
-    itemsBought: 0,
-    activeListingsCount: 0,
-    sourcingRequestsCount: 0,
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* User Dashboard Header Card */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden shadow-2xs">
-              <img
-                src={user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80'}
-                alt={user.name}
-                className="w-full h-full object-cover"
-              />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* User Overview Profile Card */}
+      <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-xs">
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
             </div>
-            {isVerifiedShop && (
-              <div className="absolute -bottom-1 -right-1 p-1 bg-amber-800 text-white rounded-lg shadow-xs border-2 border-white">
-                <ShieldCheck className="w-3.5 h-3.5" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  {user?.name || 'Technologia Member'}
+                </h1>
+                {user?.isVerifiedShop && (
+                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-800" />
+                    <span>Verified Plaza Shop</span>
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-extrabold text-slate-900">
-                {isVerifiedShop && user.shopName ? user.shopName : user.name}
-              </h1>
-              {isVerifiedShop ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
-                  <ShieldCheck className="w-3 h-3 text-amber-800" />
-                  <span>Verified Shop</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{user?.city || 'Lahore'}</span>
+                  {user?.shopAddress && <span>&bull; {user.shopAddress}</span>}
                 </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                  <span>Standard Enthusiast</span>
-                </span>
-              )}
+                <span>&bull;</span>
+                <span className="font-mono text-slate-600">{user?.email}</span>
+              </div>
             </div>
-
-            <p className="text-xs text-slate-500 mt-0.5">
-              {user.email} &bull; {user.city}
-              {isVerifiedShop && user.shopAddress && ` &bull; ${user.shopAddress}`}
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Reputation & Actions */}
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl text-center">
-            <div className="flex items-center justify-center gap-1">
-              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-              <span className="font-mono font-extrabold text-sm text-slate-900">
-                {stats.trustScore}%
-              </span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {stats.reviewCount} Review{stats.reviewCount === 1 ? '' : 's'}
-            </span>
           </div>
 
-          <Link
-            href={`/profile/${user.id}`}
-            className="px-3.5 py-2 rounded-xl border border-gray-200 hover:border-blue-600 bg-white text-xs font-semibold text-slate-700 hover:text-blue-600 transition-colors shadow-2xs"
-          >
-            View Public Profile
-          </Link>
-
-          <Link
-            href="/post-ad"
-            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 btn-tactile"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Post New Ad</span>
-          </Link>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <Link
+              href="/post-ad"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Post New Ad</span>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 flex items-center gap-4">
+      {/* Tabs Row */}
+      <div className="flex items-center gap-2 border-b border-gray-200 text-xs sm:text-sm font-semibold">
         <button
           onClick={() => setActiveTab('saved')}
-          className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 ${
+          className={`pb-3 px-3 flex items-center gap-2 transition-all ${
             activeTab === 'saved'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           <Heart className="w-3.5 h-3.5" />
-          <span>Saved Items ({savedListings.length})</span>
+          <span>Saved Listings ({savedListings.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('alerts')}
-          className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 ${
+          className={`pb-3 px-3 flex items-center gap-2 transition-all ${
             activeTab === 'alerts'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           <Bell className="w-3.5 h-3.5" />
-          <span>Saved Searches & Alerts ({savedSearches.length})</span>
+          <span>Stock Alerts ({savedSearches.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('listings')}
-          className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 ${
+          className={`pb-3 px-3 flex items-center gap-2 transition-all ${
             activeTab === 'listings'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
-          <span>My Listings ({myListings.length})</span>
+          <span>My Ads ({myListings.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('reviews')}
-          className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 ${
+          className={`pb-3 px-3 flex items-center gap-2 transition-all ${
             activeTab === 'reviews'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-900'
@@ -270,26 +229,33 @@ function DashboardContent() {
       {/* TAB 1: SAVED ITEMS (BOOKMARKS) */}
       {activeTab === 'saved' && (
         <div className="space-y-4">
-          {savedListings.length > 0 ? (
+          {loadingData ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {savedListings.map((listing: any) => (
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 h-40 flex gap-4">
+                  <Skeleton className="w-36 h-full rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-3 py-1">
+                    <Skeleton className="h-5 w-2/3 rounded-lg" />
+                    <Skeleton className="h-3 w-1/3 rounded-lg" />
+                    <Skeleton className="h-6 w-full rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : savedListings.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {savedListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} isSavedInitial={true} />
               ))}
             </div>
           ) : (
-            <div className="p-16 text-center bg-gray-50/50 rounded-3xl border border-gray-200 space-y-3">
-              <Heart className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900">No Saved Items Yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Browse the marketplace and click the heart icon on any ad to bookmark it here for fast access.
-              </p>
-              <Link
-                href="/buy"
-                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 pt-1"
-              >
-                <span>Browse Laptops & Phones</span> &rarr;
-              </Link>
-            </div>
+            <EmptyState
+              icon={Heart}
+              title="No Saved Items Yet"
+              description="Browse the marketplace and click the heart icon on any ad to bookmark it here for fast access."
+              actionHref="/buy"
+              actionLabel="Browse Laptops & Phones"
+            />
           )}
         </div>
       )}
@@ -311,14 +277,14 @@ function DashboardContent() {
             <button
               onClick={handleRunAlertSimulation}
               disabled={simulating}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors flex-shrink-0 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition-colors flex-shrink-0 disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${simulating ? 'animate-spin' : ''}`} />
               <span>{simulating ? 'Checking Ads...' : 'Run Simulation: Check New Ads'}</span>
             </button>
           </div>
 
-          {/* Simulation Output Banner if run */}
+          {/* Simulation Output Banner */}
           {simulationResults && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-2 animate-fade-in">
               <div className="flex items-center gap-1.5 font-bold text-emerald-900">
@@ -327,7 +293,7 @@ function DashboardContent() {
               </div>
               <div className="space-y-1.5">
                 {simulationResults.map((r, idx) => (
-                  <div key={idx} className="p-2.5 rounded-xl bg-white border border-emerald-100 flex items-start justify-between gap-3">
+                  <div key={idx} className="p-2.5 rounded-xl bg-white border border-emerald-100 flex items-start justify-between gap-3 shadow-2xs">
                     <div>
                       <span className="font-bold text-slate-800">{r.name}</span>
                       <p className="text-[11px] text-slate-600 mt-0.5">{r.simulatedAlert}</p>
@@ -345,67 +311,42 @@ function DashboardContent() {
           {savedSearches.length > 0 ? (
             <div className="space-y-3">
               {savedSearches.map((s) => {
-                let criteria: any = {};
+                let parsedCriteria: Record<string, unknown> = {};
                 try {
-                  criteria = JSON.parse(s.criteria);
+                  parsedCriteria = typeof s.criteria === 'string' ? JSON.parse(s.criteria) : s.criteria;
                 } catch {
-                  criteria = {};
+                  parsedCriteria = {};
                 }
 
                 return (
                   <div
                     key={s.id}
-                    className="bg-white border border-gray-200 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs"
                   >
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-slate-900">
-                          {s.name}
-                        </h4>
-                        <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-mono">
-                          {s.targetType} ALERT
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                          {s.targetType}
                         </span>
+                        <h4 className="text-sm font-bold text-slate-900">{s.name}</h4>
                       </div>
-
-                      {/* Criteria tags */}
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                        {criteria.category && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                            Category: {criteria.category}
-                          </span>
-                        )}
-                        {criteria.brand && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                            Brand: {criteria.brand}
-                          </span>
-                        )}
-                        {criteria.ram && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono">
-                            RAM: {criteria.ram}GB
-                          </span>
-                        )}
-                        {criteria.city && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                            City: {criteria.city}
-                          </span>
-                        )}
-                        {criteria.maxPrice && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono">
-                            Max: {formatPKR(criteria.maxPrice)}
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span>Created {formatRelativeTime(s.createdAt)}</span>
+                        <span>&bull;</span>
+                        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono text-[10px]">
+                          Match Alerts Active
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2">
                       <Link
-                        href={`/buy?category=${criteria.category || 'ALL'}&brand=${criteria.brand || 'ALL'}`}
-                        className="px-3 py-1.5 rounded-xl border border-gray-200 hover:border-blue-600 text-xs font-semibold text-slate-700 hover:text-blue-600 transition-colors flex items-center gap-1"
+                        href={s.targetType === 'REQUEST' ? '/requests' : '/listings'}
+                        className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Open catalog with these filters"
                       >
-                        <span>View Results</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
-
                       <button
                         onClick={() => handleDeleteSearch(s.id)}
                         title="Delete alert"
@@ -419,13 +360,13 @@ function DashboardContent() {
               })}
             </div>
           ) : (
-            <div className="p-16 text-center bg-gray-50/50 rounded-3xl border border-gray-200 space-y-3">
-              <Bell className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900">No Saved Search Alerts</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Filter devices on the Buy or Sourcing page and click &ldquo;Save this Search&rdquo; to receive simulated stock alerts.
-              </p>
-            </div>
+            <EmptyState
+              icon={Bell}
+              title="No Saved Search Alerts"
+              description="Filter devices on the Buy or Sourcing page and click 'Save this Search' to receive simulated stock alerts."
+              actionHref="/buy"
+              actionLabel="Explore Catalog"
+            />
           )}
         </div>
       )}
@@ -435,31 +376,25 @@ function DashboardContent() {
         <div className="space-y-4">
           {myListings.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {myListings.map((listing: any) => (
+              {myListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
           ) : (
-            <div className="p-16 text-center bg-gray-50/50 rounded-3xl border border-gray-200 space-y-3">
-              <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900">No Listings Posted Yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Post your laptop, mobile phone, or spare part to reach thousands of Pakistani tech buyers.
-              </p>
-              <Link
-                href="/post-ad"
-                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 pt-1"
-              >
-                <span>Create an Ad</span> &rarr;
-              </Link>
-            </div>
+            <EmptyState
+              icon={ShoppingBag}
+              title="No Listings Posted Yet"
+              description="Post your laptop, mobile phone, or spare part to reach thousands of Pakistani tech buyers."
+              actionHref="/post-ad"
+              actionLabel="Create an Ad"
+            />
           )}
         </div>
       )}
 
       {/* TAB 4: REPUTATION BREAKDOWN */}
       {activeTab === 'reviews' && (
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 space-y-6">
+        <div className="bg-white border border-gray-200/90 rounded-3xl p-6 space-y-6 shadow-2xs">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
             <div>
               <h3 className="text-sm font-bold text-slate-900">

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { cleanWhatsAppNumber } from '@/lib/utils';
 import { calculateReputation } from '@/lib/auth';
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     const storage = searchParams.get('storage')?.trim() || '';
     const sort = searchParams.get('sort') || 'latest';
 
-    const where: any = {};
+    const where: Prisma.ListingWhereInput = {};
 
     if (category && category !== 'ALL') {
       where.category = category;
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: Prisma.ListingOrderByWithRelationInput = { createdAt: 'desc' };
     if (sort === 'price_asc') {
       orderBy = { price: 'asc' };
     } else if (sort === 'price_desc') {
@@ -128,27 +129,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    let savedIds: string[] = [];
-    try {
-      const { getCurrentUser } = await import('@/lib/auth');
-      const currentUser = await getCurrentUser();
-      if (currentUser?.id) {
-        const savedRecords = await prisma.savedListing.findMany({
-          where: { userId: currentUser.id },
-          select: { listingId: true },
-        });
-        savedIds = savedRecords.map((s) => s.listingId);
-      }
-    } catch (e) {
-      // non-fatal
-    }
-
-    return NextResponse.json({
-      success: true,
-      count: enrichedListings.length,
-      listings: enrichedListings,
-      savedIds,
-    });
+    return NextResponse.json({ success: true, count: enrichedListings.length, listings: enrichedListings });
   } catch (error) {
     console.error('Error fetching listings:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch listings' }, { status: 500 });

@@ -16,7 +16,7 @@ export function generateMetadata({ params }: BuyCategoryPageProps) {
       description: 'Lenovo ThinkPads, Dell XPS, HP EliteBooks and authentic laptop parts with locked specs in Pakistan.',
     };
   }
-  if (cat === 'phones' || cat === 'mobiles') {
+  if (cat === 'phones') {
     return {
       title: 'Buy Mobile Phones & Parts | Technologia',
       description: 'Official PTA Approved, CPID, and JV mobile phones with verified battery health in Pakistan.',
@@ -43,7 +43,7 @@ export default function BuyCategoryPage({ params }: BuyCategoryPageProps) {
     );
   }
 
-  if (cat === 'phones' || cat === 'mobiles') {
+  if (cat === 'phones') {
     return (
       <Suspense fallback={<div className="p-12 text-center text-xs text-slate-400">Loading phones...</div>}>
         <ListingsCatalogView

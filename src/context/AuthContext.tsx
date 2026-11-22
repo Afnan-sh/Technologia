@@ -30,11 +30,25 @@ export interface UserProfile {
   };
 }
 
+export interface RegisterFormData {
+  name: string;
+  email: string;
+  password?: string;
+  role?: string;
+  isVerifiedShop?: boolean;
+  shopName?: string | null;
+  shopAddress?: string | null;
+  businessHours?: string | null;
+  phone?: string | null;
+  whatsappNumber?: string | null;
+  city?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: any) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterFormData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   loginAsDemo: (type: 'shopkeeper' | 'enthusiast' | 'shopkeeper-karachi') => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -90,14 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       }
       return { success: false, error: data.error || 'Failed to sign in' };
-    } catch (e: any) {
-      return { success: false, error: e.message || 'Network error' };
+    } catch (e) {
+      const err = e instanceof Error ? e.message : 'Network error';
+      return { success: false, error: err };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (formData: any) => {
+  const register = async (formData: RegisterFormData) => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -111,8 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       }
       return { success: false, error: data.error || 'Failed to create account' };
-    } catch (e: any) {
-      return { success: false, error: e.message || 'Network error' };
+    } catch (e) {
+      const err = e instanceof Error ? e.message : 'Network error';
+      return { success: false, error: err };
     } finally {
       setIsLoading(false);
     }

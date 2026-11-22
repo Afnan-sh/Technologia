@@ -13,7 +13,13 @@ export interface UserStats {
   sourcingRequestsCount: number;
 }
 
-export function calculateReputation(reviews: any[]): UserStats {
+export interface ReviewCriteria {
+  itemAsDescribed: boolean;
+  communicationRating: number;
+  undisclosedFaults: boolean;
+}
+
+export function calculateReputation(reviews: ReviewCriteria[] = []): UserStats {
   if (!reviews || reviews.length === 0) {
     return {
       trustScore: 100, // Default baseline for new members

@@ -20,8 +20,9 @@ export async function GET() {
       success: true,
       savedSearches: searches,
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error retrieving saved searches';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -64,9 +65,10 @@ export async function POST(req: Request) {
       savedSearch,
       message: `Alert activated for "${name}"`,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Save search error';
     console.error('Save search error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -91,7 +93,8 @@ export async function DELETE(req: Request) {
     });
 
     return NextResponse.json({ success: true, message: 'Saved search removed' });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error deleting saved search';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

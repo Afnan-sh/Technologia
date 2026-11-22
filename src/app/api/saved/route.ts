@@ -41,8 +41,9 @@ export async function GET() {
       savedListings: listings,
       savedIds,
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error fetching saved listings';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -98,8 +99,9 @@ export async function POST(req: Request) {
         message: 'Item saved to your dashboard',
       });
     }
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Save toggle error';
     console.error('Save toggle error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

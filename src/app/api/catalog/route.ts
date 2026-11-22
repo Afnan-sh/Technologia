@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const brand = searchParams.get('brand');
     const search = searchParams.get('search');
 
-    const where: any = {};
+    const where: Prisma.DeviceCatalogWhereInput = {};
     if (category && category !== 'ALL') {
       where.category = category;
     }

@@ -20,6 +20,45 @@ import { formatPKR, formatRelativeTime } from '@/lib/utils';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { useAuth } from '@/context/AuthContext';
 
+interface ChatMsg {
+  id: string;
+  senderRole: string;
+  senderName: string;
+  text: string;
+  isPrompt?: boolean;
+  createdAt: string | Date;
+}
+
+interface ChatThreadItem {
+  id: string;
+  title: string;
+  buyerName: string;
+  sellerName: string;
+  sellerWhatsapp?: string | null;
+  itemPrice?: number | null;
+  itemCity?: string | null;
+  lastMessage?: string | null;
+  lastMessageAt?: string | Date;
+  unreadBuyer?: number;
+  unreadSeller?: number;
+  messages?: ChatMsg[];
+  listing?: {
+    id: string;
+    title: string;
+    price: number;
+    city: string;
+    images?: string | string[];
+    category?: string;
+  } | null;
+  request?: {
+    id: string;
+    title: string;
+    maxBudgetPKR: number;
+    city: string;
+    photoUrl?: string | null;
+  } | null;
+}
+
 const QUICK_PROMPTS = [
   'Is this available for physical inspection?',
   'Can you share benchmark/test video?',
@@ -34,9 +73,9 @@ function MessagesContent() {
   const startWithRequest = searchParams.get('startWithRequest');
 
   const { user } = useAuth();
-  const [threads, setThreads] = useState<any[]>([]);
+  const [threads, setThreads] = useState<ChatThreadItem[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string>('');
-  const [activeThread, setActiveThread] = useState<any>(null);
+  const [activeThread, setActiveThread] = useState<ChatThreadItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
 
@@ -143,10 +182,10 @@ function MessagesContent() {
 
       const data = await res.json();
       if (data.success && data.message) {
-        setActiveThread((prev: any) => ({
+        setActiveThread((prev) => (prev ? {
           ...prev,
-          messages: [...(prev?.messages || []), data.message],
-        }));
+          messages: [...(prev.messages || []), data.message],
+        } : null));
         setInputText('');
         loadThreads();
         setTimeout(() => {
@@ -360,7 +399,7 @@ function MessagesContent() {
 
               {/* Messages Body */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
-                {activeThread.messages?.map((msg: any) => {
+                {activeThread.messages?.map((msg) => {
                   const isMe = msg.senderRole === senderRole;
                   return (
                     <div

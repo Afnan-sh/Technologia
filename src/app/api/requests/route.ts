@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { cleanWhatsAppNumber } from '@/lib/utils';
 
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get('city')?.trim() || '';
     const status = searchParams.get('status')?.trim() || '';
 
-    const where: any = {};
+    const where: Prisma.PartRequestWhereInput = {};
 
     if (category && category !== 'ALL') {
       where.category = category;

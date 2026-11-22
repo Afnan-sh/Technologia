@@ -12,11 +12,11 @@ model User {
   email               String         @unique
   password            String         @default("technologia123")
   name                String
-  role                String         @default("USER") // Single standard account type
+  role                String         @default("ENTHUSIAST") // "ENTHUSIAST" | "SHOPKEEPER"
   isVerifiedShop      Boolean        @default(false)
   shopName            String?
-  shopAddress         String?
-  businessHours       String?
+  shopAddress         String?        // e.g. "Shop #42, 2nd Floor, Hafeez Centre, Main Boulevard Gulberg III, Lahore"
+  businessHours       String?        // e.g. "Mon - Sat: 11:30 AM - 9:30 PM (Closed Friday 1:00 PM - 2:30 PM)"
   phone               String?
   whatsappNumber      String?
   city                String         @default("Lahore")

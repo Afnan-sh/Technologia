@@ -6,11 +6,11 @@ export async function POST(req: Request) {
   try {
     const { roleType = 'shopkeeper' } = await req.json();
 
-    let targetEmail = 'usman@technologia.pk';
-    if (roleType === 'user2' || roleType === 'user_2' || roleType === 'ali' || roleType === 'enthusiast') {
+    let targetEmail = 'usman@hafeezcentre.pk';
+    if (roleType === 'enthusiast') {
       targetEmail = 'ali@technologia.pk';
-    } else {
-      targetEmail = 'usman@technologia.pk';
+    } else if (roleType === 'shopkeeper-karachi') {
+      targetEmail = 'zubair@applevault.pk';
     }
 
     const userInclude = {
@@ -62,7 +62,8 @@ export async function POST(req: Request) {
     });
 
     return response;
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Demo sign in failed';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

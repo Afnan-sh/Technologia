@@ -77,9 +77,10 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, count: legacyThreads.length, sessions: legacyThreads, threads: legacyThreads });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error in messages GET';
     console.error('Error in messages GET:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -238,8 +239,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error in messages POST';
     console.error('Error in messages POST:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

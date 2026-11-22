@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Laptop, Smartphone, Lock, CheckCircle, Info } from 'lucide-react';
+import { DeviceCatalogItem, PartCatalogItem } from '@/types';
 
 export interface SelectedCatalogData {
   category: 'LAPTOP' | 'PHONE';
@@ -29,7 +30,7 @@ export interface SelectedCatalogData {
   supportedRamType?: string;
   supportedStorage?: string;
   suggestedPricePKR?: number;
-  rawDevice?: any;
+  rawDevice?: DeviceCatalogItem;
 }
 
 interface CatalogPickerProps {
@@ -45,7 +46,7 @@ export default function CatalogPicker({
   onCatalogChange,
   allowPartSelection = true,
 }: CatalogPickerProps) {
-  const [devices, setDevices] = useState<any[]>([]);
+  const [devices, setDevices] = useState<DeviceCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [category, setCategory] = useState<'LAPTOP' | 'PHONE'>(initialCategory);
@@ -63,10 +64,10 @@ export default function CatalogPicker({
         if (data.success && data.devices) {
           setDevices(data.devices);
           // Set initial defaults
-          const filtered = data.devices.filter((d: any) => d.category === initialCategory);
+          const filtered = (data.devices as DeviceCatalogItem[]).filter((d) => d.category === initialCategory);
           if (filtered.length > 0) {
             setSelectedBrand(filtered[0].brand);
-            const firstDev = filtered.find((d: any) => d.brand === filtered[0].brand);
+            const firstDev = filtered.find((d) => d.brand === filtered[0].brand);
             setSelectedDeviceId(firstDev ? firstDev.id : filtered[0].id);
           }
         }
@@ -83,8 +84,8 @@ export default function CatalogPicker({
   const availableBrands = Array.from(new Set(categoryDevices.map((d) => d.brand)));
   const brandDevices = categoryDevices.filter((d) => d.brand === selectedBrand);
   const activeDevice = devices.find((d) => d.id === selectedDeviceId);
-  const availableParts = activeDevice?.parts || [];
-  const activePart = availableParts.find((p: any) => p.id === selectedPartId);
+  const availableParts: PartCatalogItem[] = (activeDevice?.parts as unknown as PartCatalogItem[]) || [];
+  const activePart = availableParts.find((p) => p.id === selectedPartId);
 
   const handleCategoryChange = (newCat: 'LAPTOP' | 'PHONE') => {
     setCategory(newCat);
@@ -330,7 +331,7 @@ export default function CatalogPicker({
             className="w-full px-3 py-2 text-xs rounded-lg border border-amber-300 bg-amber-50/30 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800"
           >
             <option value="">-- Choose Canonical Part (or type custom in description) --</option>
-            {availableParts.map((part: any) => (
+            {availableParts.map((part) => (
               <option key={part.id} value={part.id}>
                 [{part.partType}] {part.name} {part.partNumber ? `(PN: ${part.partNumber})` : ''} - Suggested: PKR {part.suggestedPricePKR?.toLocaleString()}
               </option>

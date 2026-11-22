@@ -101,19 +101,19 @@ function CompareContent() {
         if (data.success && data.devices) {
           setAllDevices(data.devices);
 
-          const phones = data.devices.filter((d: any) => d.category === 'PHONE');
-          const laptops = data.devices.filter((d: any) => d.category === 'LAPTOP');
+          const phones = (data.devices as DeviceItem[]).filter((d) => d.category === 'PHONE');
+          const laptops = (data.devices as DeviceItem[]).filter((d) => d.category === 'LAPTOP');
 
           // Pre-populate canonical Phone legends
-          const p1 = phones.find((d: any) => d.brand === 'Apple' && d.model.includes('iPhone 13 Pro')) || phones[0];
-          const p2 = phones.find((d: any) => d.brand === 'Samsung' && d.model.includes('S22 Ultra')) || phones[1];
-          const p3 = phones.find((d: any) => d.brand === 'Google' && d.model.includes('Pixel 7 Pro')) || phones[2];
+          const p1 = phones.find((d) => d.brand === 'Apple' && d.model.includes('iPhone 13 Pro')) || phones[0];
+          const p2 = phones.find((d) => d.brand === 'Samsung' && d.model.includes('S22 Ultra')) || phones[1];
+          const p3 = phones.find((d) => d.brand === 'Google' && d.model.includes('Pixel 7 Pro')) || phones[2];
           setPhoneSlots([p1 || null, p2 || null, p3 || null]);
 
           // Pre-populate canonical Laptop legends
-          const l1 = laptops.find((d: any) => d.brand === 'Lenovo' && d.model.includes('ThinkPad T480')) || laptops[0];
-          const l2 = laptops.find((d: any) => d.brand === 'Dell' && d.model.includes('XPS 15 9570')) || laptops[1];
-          const l3 = laptops.find((d: any) => d.brand === 'Apple' && d.model.includes('MacBook Air M1')) || laptops[2];
+          const l1 = laptops.find((d) => d.brand === 'Lenovo' && d.model.includes('ThinkPad T480')) || laptops[0];
+          const l2 = laptops.find((d) => d.brand === 'Dell' && d.model.includes('XPS 15 9570')) || laptops[1];
+          const l3 = laptops.find((d) => d.brand === 'Apple' && d.model.includes('MacBook Air M1')) || laptops[2];
           setLaptopSlots([l1 || null, l2 || null, l3 || null]);
         }
       } catch (err) {
@@ -166,7 +166,7 @@ function CompareContent() {
   });
 
   // Helper to format RAM array
-  const formatRam = (ram: any) => {
+  const formatRam = (ram: unknown) => {
     if (!ram) return 'N/A';
     try {
       const arr = typeof ram === 'string' ? JSON.parse(ram) : ram;
@@ -177,7 +177,7 @@ function CompareContent() {
   };
 
   // Helper to format Storage array
-  const formatStorage = (storage: any) => {
+  const formatStorage = (storage: unknown) => {
     if (!storage) return 'N/A';
     try {
       const arr = typeof storage === 'string' ? JSON.parse(storage) : storage;

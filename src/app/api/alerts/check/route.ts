@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -22,7 +23,7 @@ export async function GET() {
     const simulationResults = [];
 
     for (const s of savedSearches) {
-      let criteria: any = {};
+      let criteria: Record<string, string | number> = {};
       try {
         criteria = JSON.parse(s.criteria);
       } catch {
@@ -30,14 +31,14 @@ export async function GET() {
       }
 
       // Build prisma where query
-      const where: any = {};
-      if (criteria.category && criteria.category !== 'ALL') {
+      const where: Prisma.ListingWhereInput = {};
+      if (criteria.category && typeof criteria.category === 'string' && criteria.category !== 'ALL') {
         where.category = criteria.category.toUpperCase();
       }
-      if (criteria.brand && criteria.brand !== 'ALL') {
+      if (criteria.brand && typeof criteria.brand === 'string' && criteria.brand !== 'ALL') {
         where.brand = { contains: criteria.brand };
       }
-      if (criteria.city && criteria.city !== 'ALL') {
+      if (criteria.city && typeof criteria.city === 'string' && criteria.city !== 'ALL') {
         where.city = criteria.city;
       }
       if (criteria.ram) {
@@ -83,8 +84,9 @@ export async function GET() {
       totalSearches: savedSearches.length,
       alerts: simulationResults,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Alerts check error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -1,64 +1,71 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import prisma from '@/lib/prisma';
 import { 
-  Laptop, 
-  Smartphone, 
-  Wrench, 
   MapPin, 
-  Battery, 
-  Cpu, 
-  HardDrive, 
-  ShieldCheck, 
-  ArrowLeft, 
-  Share2, 
-  Check, 
-  Eye, 
   Clock, 
-  AlertCircle,
-  MessageSquare,
-  Lock,
-  Sparkles
+  Lock, 
+  ArrowLeft, 
+  ShieldCheck, 
+  MessageSquare, 
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { formatPKR, formatRelativeTime, PTA_STATUSES } from '@/lib/utils';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import FeatureAdToggle from '@/components/FeatureAdToggle';
+import { ListingGallery } from '@/components/features/ListingGallery';
+import { ShareButton } from '@/components/features/ShareButton';
+import { SaveListingButton } from '@/components/features/SaveListingButton';
+import { Metadata } from 'next';
 
-export default function ListingDetailPage() {
-  const { id } = useParams() as { id: string };
-  const router = useRouter();
+export const dynamic = 'force-dynamic';
 
-  const [listing, setListing] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [copiedLink, setCopiedLink] = useState(false);
+interface ListingPageProps {
+  params: {
+    id: string;
+  };
+}
 
-  useEffect(() => {
-    async function loadListing() {
-      try {
-        const res = await fetch(`/api/listings/${id}`);
-        const data = await res.json();
-        if (data.success) {
-          setListing(data.listing);
-        }
-      } catch (e) {
-        console.error('Error fetching listing detail:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadListing();
-  }, [id]);
+export async function generateMetadata({ params }: ListingPageProps): Promise<Metadata> {
+  const listing = await prisma.listing.findUnique({
+    where: { id: params.id },
+  });
 
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center text-xs text-slate-400 animate-pulse">
-        Loading listing specifications & seller profile...
-      </div>
-    );
+  if (!listing) {
+    return {
+      title: 'Listing Not Found | Technologia',
+    };
   }
+
+  return {
+    title: `${listing.title} - PKR ${listing.price.toLocaleString('en-PK')} | Technologia`,
+    description: `${listing.title} in ${listing.city}. Condition: ${listing.condition}. Verified specifications locked via Technologia master catalog.`,
+  };
+}
+
+export default async function ListingDetailPage({ params }: ListingPageProps) {
+  const listing = await prisma.listing.findUnique({
+    where: { id: params.id },
+    include: {
+      device: true,
+      partCatalog: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          isVerifiedShop: true,
+          shopName: true,
+          shopAddress: true,
+          city: true,
+          whatsappNumber: true,
+          phone: true,
+        },
+      },
+    },
+  });
 
   if (!listing) {
     return (
@@ -66,17 +73,23 @@ export default function ListingDetailPage() {
         <AlertCircle className="w-12 h-12 text-slate-400 mx-auto" />
         <h2 className="text-lg font-bold text-slate-900">Listing Not Found</h2>
         <p className="text-xs text-slate-500">The ad you are looking for may have expired or been removed.</p>
-        <Link href="/home" className="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg">
+        <Link href="/home" className="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl">
           Return to Marketplace
         </Link>
       </div>
     );
   }
 
+  // Asynchronously increment views counter without blocking page render
+  prisma.listing.update({
+    where: { id: listing.id },
+    data: { viewsCount: { increment: 1 } },
+  }).catch(() => {});
+
   let images: string[] = [];
   try {
-    images = typeof listing.images === 'string' ? JSON.parse(listing.images) : listing.images;
-  } catch (e) {
+    images = typeof listing.images === 'string' ? JSON.parse(listing.images) : (listing.images as unknown as string[]);
+  } catch {
     images = [listing.images];
   }
   if (!images || images.length === 0) {
@@ -85,83 +98,37 @@ export default function ListingDetailPage() {
 
   const ptaConfig = PTA_STATUSES.find(p => p.id === listing.ptaStatus);
 
-  const handleShare = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    }
-  };
-
-  const handleStartChat = () => {
-    router.push(`/messages?startWithListing=${listing.id}`);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Breadcrumb & Actions */}
+      {/* Breadcrumb & Top Actions */}
       <div className="flex items-center justify-between">
         <Link
-          href={listing.category === 'LAPTOP' ? '/buy/laptops' : '/buy/mobiles'}
+          href="/listings"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to {listing.category === 'LAPTOP' ? 'Laptops' : 'Mobiles'}</span>
+          <span>Back to Listings</span>
         </Link>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-xs font-medium text-slate-700 transition-colors"
-          >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-blue-600" /> : <Share2 className="w-3.5 h-3.5 text-slate-400" />}
-            <span>{copiedLink ? 'Link Copied!' : 'Share Ad'}</span>
-          </button>
+          <SaveListingButton listingId={listing.id} variant="detail" />
+          <ShareButton title={listing.title} />
         </div>
       </div>
 
       {/* Main Grid: Images + Overview & Seller Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Col: Images & Spec sheet */}
+        {/* Left Column: Image Gallery & Spec Sheet */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Main Hero Image */}
-          <div className="relative aspect-[16/10] bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-xs">
-            <img
-              src={images[selectedImageIndex]}
-              alt={listing.title}
-              className="w-full h-full object-cover"
-            />
-            {listing.isFeatured && (
-              <div className="absolute top-3 left-3 flex items-center gap-1 bg-amber-800 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                <span>Featured Ad</span>
-              </div>
-            )}
-            <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-xs text-slate-800 text-xs font-medium px-2.5 py-1 rounded-md border border-gray-200/50 shadow-2xs">
-              <Eye className="w-3.5 h-3.5 text-slate-400" />
-              <span>{listing.viewsCount || 0} Views</span>
-            </div>
-          </div>
-
-          {/* Image Thumbnails (if multiple) */}
-          {images.length > 1 && (
-            <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              {images.map((img: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
-                    selectedImageIndex === idx ? 'border-blue-600 shadow-2xs' : 'border-gray-200 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img src={img} alt="thumb" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+          <ListingGallery
+            images={images}
+            title={listing.title}
+            isFeatured={listing.isFeatured}
+            viewsCount={listing.viewsCount}
+          />
 
           {/* Verified Specs Sheet */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="bg-white border border-gray-200/90 rounded-2xl p-5 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-blue-600" />
@@ -175,53 +142,53 @@ export default function ListingDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase block">Model Registry</span>
                 <span className="font-semibold text-slate-800">{listing.brand} {listing.model}</span>
               </div>
 
-              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase block">Condition Rating</span>
                 <span className="font-semibold text-slate-800">{listing.condition}</span>
               </div>
 
               {listing.device?.cpuGeneration && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">Processor / Generation</span>
                   <span className="font-semibold text-slate-800">{listing.device.cpuGeneration}</span>
                 </div>
               )}
 
               {listing.device?.defaultScreen && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">Display Matrix</span>
                   <span className="font-semibold text-slate-800">{listing.device.defaultScreen}</span>
                 </div>
               )}
 
               {listing.ramGB && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">Installed RAM</span>
                   <span className="font-semibold text-slate-800 font-mono">{listing.ramGB}GB ({listing.device?.supportedRamType || 'DDR4'})</span>
                 </div>
               )}
 
               {listing.storage && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">Storage Unit</span>
                   <span className="font-semibold text-slate-800 font-mono">{listing.storage}</span>
                 </div>
               )}
 
               {listing.batteryHealth && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">Battery Health %</span>
                   <span className="font-semibold text-blue-600 font-mono">{listing.batteryHealth}% Capacity</span>
                 </div>
               )}
 
               {listing.partNumber && (
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase block">OEM Part Number</span>
                   <span className="font-semibold text-amber-800 font-mono">{listing.partNumber}</span>
                 </div>
@@ -236,7 +203,7 @@ export default function ListingDetailPage() {
           </div>
 
           {/* Seller Description */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+          <div className="bg-white border border-gray-200/90 rounded-2xl p-5 space-y-3 shadow-2xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
               Seller Description & Checking Warranty
             </h3>
@@ -246,9 +213,9 @@ export default function ListingDetailPage() {
           </div>
         </div>
 
-        {/* Right Col: Price, Actions, PTA, WhatsApp */}
+        {/* Right Column: Price, Contact, Location */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5 shadow-xs">
+          <div className="bg-white border border-gray-200/90 rounded-2xl p-6 space-y-5 shadow-2xs">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold px-2.5 py-0.5">
@@ -284,9 +251,11 @@ export default function ListingDetailPage() {
                   <ShieldCheck className="w-4 h-4 text-blue-600" />
                   <span>PTA Status: {listing.ptaStatus}</span>
                 </div>
-                <p className="text-[11px] text-blue-700 leading-relaxed">
-                  {ptaConfig?.description}
-                </p>
+                {ptaConfig?.description && (
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    {ptaConfig.description}
+                  </p>
+                )}
               </div>
             )}
 
@@ -309,17 +278,17 @@ export default function ListingDetailPage() {
                 variant="lg"
               />
 
-              <button
-                onClick={handleStartChat}
-                className="w-full py-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-slate-800 border border-gray-200 font-semibold text-xs transition-colors flex items-center justify-center gap-2 btn-tactile"
+              <Link
+                href={`/messages?startWithListing=${listing.id}`}
+                className="w-full py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-slate-800 border border-gray-200 font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-2xs"
               >
                 <MessageSquare className="w-4 h-4 text-blue-600" />
                 <span>Chat in-app on Technologia</span>
-              </button>
+              </Link>
 
               <Link
                 href="/compare"
-                className="w-full py-2.5 px-3 rounded-lg border border-blue-200 hover:border-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-blue-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 px-3 rounded-xl border border-blue-200 hover:border-blue-600 bg-blue-50/50 hover:bg-blue-100/60 text-blue-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-2xs"
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 <span>Compare Specs in 10-Yr Registry</span>
@@ -343,7 +312,6 @@ export default function ListingDetailPage() {
           <FeatureAdToggle
             listingId={listing.id}
             initialFeatured={listing.isFeatured}
-            onToggle={(newFeatured) => setListing((prev: any) => ({ ...prev, isFeatured: newFeatured }))}
           />
         </div>
       </div>

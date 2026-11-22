@@ -133,7 +133,7 @@ export default function NavigationDrawer({ isOpen, onClose }: NavigationDrawerPr
               {expandedSections.buy && (
                 <div className="pl-9 pr-3 py-1 space-y-1 bg-gray-50/50 rounded-b-lg">
                   <Link
-                    href="/buy/mobiles"
+                    href="/buy/phones"
                     onClick={onClose}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-white rounded-md transition-colors"
                   >
@@ -256,12 +256,12 @@ export default function NavigationDrawer({ isOpen, onClose }: NavigationDrawerPr
               {expandedSections.viewRequests && (
                 <div className="pl-9 pr-3 py-1 space-y-1 bg-gray-50/50 rounded-b-lg">
                   <Link
-                    href="/requests/mobiles"
+                    href="/requests/phones"
                     onClick={onClose}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-white rounded-md transition-colors"
                   >
                     <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Mobile Part Requests</span>
+                    <span>Phone Part Requests</span>
                   </Link>
                   <Link
                     href="/requests/laptops"
@@ -291,25 +291,31 @@ export default function NavigationDrawer({ isOpen, onClose }: NavigationDrawerPr
                 <UserIcon className="w-4 h-4 text-blue-600" />
                 <span>My Dashboard</span>
               </div>
+              {user?.isVerifiedShop && (
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-800" />
+              )}
             </Link>
 
-            {/* Consolidated Saved Hub */}
             <Link
               href="/dashboard/saved"
               onClick={onClose}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                pathname === '/dashboard/saved'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-600 hover:bg-gray-50'
-              }`}
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-2.5">
-                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                <span>Saved Hub</span>
+                <Heart className="w-4 h-4 text-red-500" />
+                <span>Saved Items</span>
               </div>
-              <span className="text-[10px] bg-red-50 text-red-700 font-bold px-1.5 py-0.5 rounded-full border border-red-200">
-                Saved
-              </span>
+            </Link>
+
+            <Link
+              href="/dashboard?tab=alerts"
+              onClick={onClose}
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <Bell className="w-4 h-4 text-amber-800" />
+                <span>Saved Searches & Alerts</span>
+              </div>
             </Link>
 
             <Link
@@ -328,6 +334,37 @@ export default function NavigationDrawer({ isOpen, onClose }: NavigationDrawerPr
               <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">
                 Bench
               </span>
+            </Link>
+
+            <Link
+              href="/messages"
+              onClick={onClose}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                pathname === '/messages'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-slate-600 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <MessageSquare className="w-4 h-4 text-blue-600" />
+                <span>Direct Messages</span>
+              </div>
+              <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">
+                Chat
+              </span>
+            </Link>
+
+            <Link
+              href="/listings"
+              onClick={onClose}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                pathname === '/listings'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-slate-600 hover:bg-gray-50'
+              }`}
+            >
+              <ListFilter className="w-4 h-4 text-slate-500" />
+              <span>Browse All Listings</span>
             </Link>
           </div>
         </div>

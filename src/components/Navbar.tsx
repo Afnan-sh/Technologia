@@ -14,19 +14,14 @@ import {
   Sun,
   ShieldCheck,
   Menu,
-  X,
-  Heart,
-  User as UserIcon
+  X
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, refreshUser } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(1);
-  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     // Default to dark mode for technical high-density look
@@ -45,31 +40,13 @@ export default function Navbar() {
     });
   };
 
-  const handleSwitchUser = async (target: 'user1' | 'user2') => {
-    setSwitching(true);
-    try {
-      await fetch('/api/auth/switch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target }),
-      });
-      await refreshUser();
-      window.location.reload();
-    } catch (e) {
-      console.error('Error switching user:', e);
-    } finally {
-      setSwitching(false);
-    }
-  };
-
   const navLinks = [
-    { href: '/buy/mobiles', label: 'Mobiles', icon: Smartphone },
-    { href: '/buy/laptops', label: 'Laptops', icon: Laptop },
+    { href: '/listings', label: 'Browse Listings', icon: Laptop },
     { 
       href: '/requests', 
       label: 'Sourcing Hub', 
       icon: Target,
-      badge: 'Active',
+      badge: '5 Active',
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
     },
     { 
@@ -83,58 +60,21 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      {/* Top micro ticker with User Switcher */}
-      <div className="bg-slate-900 border-b border-slate-800 text-[11px] text-slate-300 py-1.5 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      {/* Top micro ticker */}
+      <div className="bg-slate-900 border-b border-slate-800 text-[11px] text-slate-300 py-1 px-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 overflow-hidden text-ellipsis whitespace-nowrap">
             <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               PAKISTAN LOCAL TECH HUB
             </span>
-            <span className="text-slate-600 hidden sm:inline">|</span>
-            <span className="text-slate-400 hidden sm:inline">Hafeez Centre &bull; Saddar &bull; Blue Area &bull; Dubai Plaza</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-400">Direct Sourcing in Hafeez Centre, Saddar, Blue Area & Dubai Plaza</span>
           </div>
-
-          <div className="flex items-center space-x-2 font-mono text-slate-400">
-            {/* Developer User Switcher */}
-            <div className="flex items-center gap-1 bg-slate-800/90 rounded-md px-2 py-0.5 border border-slate-700/80 text-[10px]">
-              <span className="text-slate-400 font-semibold hidden md:inline">TEST USER:</span>
-              <button
-                type="button"
-                onClick={() => handleSwitchUser('user1')}
-                disabled={switching}
-                className={`px-1.5 py-0.5 rounded transition-all font-bold ${
-                  user?.email?.includes('usman')
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Switch to Usman Ghani (User 1 - Lahore)"
-              >
-                User 1 (Usman)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSwitchUser('user2')}
-                disabled={switching}
-                className={`px-1.5 py-0.5 rounded transition-all font-bold ${
-                  user?.email?.includes('ali')
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Switch to Ali Raza (User 2 - Karachi)"
-              >
-                User 2 (Ali)
-              </button>
-            </div>
-
-            <Link 
-              href="/dashboard/saved"
-              className="text-slate-300 hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-slate-800 transition-colors"
-              title="Saved Items Hub"
-            >
-              <Heart className="w-3 h-3 text-red-500 fill-red-500" />
-              <span className="hidden sm:inline">Saved</span>
-            </Link>
+          <div className="hidden sm:flex items-center space-x-3 font-mono text-slate-400">
+            <span>Verified PTA & Hardware Specs</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-emerald-400 font-medium">WhatsApp Direct Handoff</span>
           </div>
         </div>
       </div>

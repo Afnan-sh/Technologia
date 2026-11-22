@@ -1,22 +1,44 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, Camera, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Send, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatPKR, PAKISTANI_CITIES } from '@/lib/utils';
+import { submitQuoteAction } from '@/app/actions/requests';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { RequestQuoteItem } from '@/types';
 
 interface QuoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  request: any;
-  onQuoteSubmitted?: (newQuote: any) => void;
+  request?: {
+    id: string;
+    title: string;
+    maxBudgetPKR: number;
+    buyerName?: string;
+    city?: string;
+  };
+  requestId?: string;
+  requestTitle?: string;
+  maxBudget?: number;
+  onQuoteSubmitted?: (newQuote: RequestQuoteItem) => void;
 }
 
 export default function QuoteModal({
   isOpen,
   onClose,
   request,
+  requestId: directRequestId,
+  requestTitle: directRequestTitle,
+  maxBudget: directMaxBudget,
   onQuoteSubmitted,
 }: QuoteModalProps) {
+  const reqId = request?.id || directRequestId || '';
+  const reqTitle = request?.title || directRequestTitle || 'Part Sourcing Request';
+  const reqBudget = request?.maxBudgetPKR || directMaxBudget || 0;
+  const buyerName = request?.buyerName || 'the buyer';
+
   const [offeredPrice, setOfferedPrice] = useState('');
   const [condition, setCondition] = useState('Working Pull / Used');
   const [notes, setNotes] = useState('');
@@ -36,36 +58,52 @@ export default function QuoteModal({
 
     if (!offeredPrice || !condition || !notes || !sellerName || !sellerPhone) {
       setErrorMessage('Please fill in all required quote details');
+      toast.error('Please fill in all required quote details');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/requests/${request.id}/quotes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const res = await submitQuoteAction({
+        requestId: reqId,
+        offeredPrice: parseInt(offeredPrice),
+        condition,
+        notes,
+        photoUrl: photoUrl || 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80',
+        sellerName,
+        sellerPhone,
+        sellerWhatsapp: sellerPhone,
+        city,
+      });
+
+      if (res.success && res.data) {
+        toast.success('Offer submitted successfully!');
+        const quoteResult: RequestQuoteItem = {
+          id: res.data.id,
+          requestId: reqId,
           offeredPrice: parseInt(offeredPrice),
           condition,
           notes,
-          photoUrl: photoUrl || 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80',
+          photoUrl: photoUrl || null,
           sellerName,
           sellerPhone,
+          sellerWhatsapp: sellerPhone,
           city,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setSuccessQuote(data.quote);
+          createdAt: new Date(),
+        };
+        setSuccessQuote(quoteResult);
         if (onQuoteSubmitted) {
-          onQuoteSubmitted(data.quote);
+          onQuoteSubmitted(quoteResult);
         }
       } else {
-        setErrorMessage(data.error || 'Failed to submit quote');
+        const err = res.error || 'Failed to submit quote';
+        setErrorMessage(err);
+        toast.error(err);
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error communicating with server');
+    } catch {
+      const err = 'Error communicating with server';
+      setErrorMessage(err);
+      toast.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -97,10 +135,10 @@ export default function QuoteModal({
               </span>
             </div>
             <h3 className="text-base font-bold text-slate-900 mt-1 line-clamp-1">
-              {request.title}
+              {reqTitle}
             </h3>
             <p className="text-xs text-slate-500">
-              Buyer Target Budget: <strong className="text-blue-700 font-mono">{formatPKR(request.maxBudgetPKR)}</strong>
+              Buyer Target Budget: <strong className="text-blue-700 font-mono">{formatPKR(reqBudget)}</strong>
             </p>
           </div>
           <button
@@ -120,22 +158,23 @@ export default function QuoteModal({
             <div>
               <h4 className="text-lg font-bold text-slate-900">Offer Submitted Successfully!</h4>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Your offer of <strong className="text-slate-800 font-mono">{formatPKR(successQuote.offeredPrice)}</strong> is attached to the sourcing request. The buyer ({request.buyerName}) will see your offer directly.
+                Your offer of <strong className="text-slate-800 font-mono">{formatPKR(successQuote.offeredPrice)}</strong> is attached to the sourcing request. The buyer ({buyerName}) will see your offer directly.
               </p>
             </div>
             <div className="pt-2">
-              <button
+              <Button
+                variant="primary"
+                className="w-full"
                 onClick={handleReset}
-                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors btn-tactile"
               >
                 Close & Return
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
             {errorMessage && (
-              <div className="flex items-center gap-2 p-3 text-xs rounded-lg bg-red-50 text-red-700 border border-red-200">
+              <div className="flex items-center gap-2 p-3 text-xs rounded-xl bg-red-50 text-red-700 border border-red-200">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{errorMessage}</span>
               </div>
@@ -147,14 +186,14 @@ export default function QuoteModal({
                 Your Offered Price (PKR) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs font-mono text-slate-400">PKR</span>
-                <input
+                <span className="absolute left-3.5 top-2.5 text-xs font-mono text-slate-400">PKR</span>
+                <Input
                   type="number"
                   required
                   placeholder="e.g. 11500"
                   value={offeredPrice}
                   onChange={(e) => setOfferedPrice(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono"
+                  className="pl-14 font-mono"
                 />
               </div>
             </div>
@@ -167,7 +206,7 @@ export default function QuoteModal({
               <select
                 value={condition}
                 onChange={(e) => setCondition(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               >
                 <option value="Working Pull / Used">Working Pull / Used (Tested 100%)</option>
                 <option value="Brand New (OEM)">Brand New (OEM Sealed / Unused)</option>
@@ -186,7 +225,7 @@ export default function QuoteModal({
                 placeholder="e.g. Original pull from working Lenovo T480, no scratches or dead spots. Free test bench available at Hafeez Centre shop."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               />
             </div>
 
@@ -197,13 +236,13 @@ export default function QuoteModal({
                 <span className="text-[10px] text-slate-400">Optional</span>
               </label>
               <div className="relative">
-                <Camera className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                <input
+                <Camera className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                <Input
                   type="url"
                   placeholder="Paste image link or leave default"
                   value={photoUrl}
                   onChange={(e) => setPhotoUrl(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -214,26 +253,25 @@ export default function QuoteModal({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Your Name / Shop Name <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   placeholder="e.g. Waseem LCD Spares"
                   value={sellerName}
                   onChange={(e) => setSellerName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   WhatsApp Phone Number <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="tel"
                   required
                   placeholder="03001234567"
                   value={sellerPhone}
                   onChange={(e) => setSellerPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono"
+                  className="font-mono"
                 />
               </div>
             </div>
@@ -245,7 +283,7 @@ export default function QuoteModal({
               <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-2xs"
               >
                 {PAKISTANI_CITIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -255,14 +293,15 @@ export default function QuoteModal({
 
             {/* Submit CTA */}
             <div className="pt-2">
-              <button
+              <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 rounded-lg bg-amber-800 hover:bg-amber-900 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 btn-tactile"
+                isLoading={isSubmitting}
+                className="w-full bg-amber-800 hover:bg-amber-900 text-white"
+                size="md"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? 'Submitting Offer...' : 'Submit Offer to Buyer'}</span>
-              </button>
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                <span>Submit Offer to Buyer</span>
+              </Button>
             </div>
           </form>
         )}

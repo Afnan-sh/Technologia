@@ -1545,42 +1545,19 @@ async function main() {
     },
   });
 
-  // Standard generic parts for ALL devices (Phones & Laptops)
-  const standardPartCategories = [
-    'Screen / Display',
-    'Body / Housing',
-    'Battery / Charger',
-    'IC / Motherboard component',
-    'Charging Port / Flex',
-  ];
-
-  console.log('--- Seeding Generic Default Parts for All Devices ---');
-  const allDevices = [...Object.values(phoneDeviceMap), ...Object.values(laptopDeviceMap)];
-  const genericPartRecords = [];
-  for (const device of allDevices) {
-    for (const partName of standardPartCategories) {
-      genericPartRecords.push({
-        deviceId: device.id,
-        partType: partName,
-        name: partName,
-        compatibilityNotes: `OEM / Grade A replacement ${partName} for ${device.brand} ${device.model}`,
-      });
-    }
-  }
-  await prisma.partCatalog.createMany({
-    data: genericPartRecords,
-  });
-
   // ==========================================
-  // 4. SEED TWO STANDARD USERS (for dev testing / user switching)
+  // 4. SEED TIERED USERS (Enthusiasts & Verified Shopkeepers)
   // ==========================================
-  console.log('--- Seeding Two Standard Users ---');
-  const user1 = await prisma.user.create({
+  console.log('--- Seeding Tiered Users ---');
+  const userUsman = await prisma.user.create({
     data: {
-      email: 'usman@technologia.pk',
+      email: 'usman@hafeezcentre.pk',
       name: 'Usman Ghani',
-      role: 'USER',
-      isVerifiedShop: false,
+      role: 'SHOPKEEPER',
+      isVerifiedShop: true,
+      shopName: 'Usman ThinkPads & Spares Hub',
+      shopAddress: 'Shop #42, 2nd Floor, Hafeez Centre, Main Boulevard Gulberg III, Lahore',
+      businessHours: 'Mon - Sat: 11:30 AM - 9:30 PM (Friday Prayer Break 1:00 PM - 2:30 PM)',
       phone: '03005557788',
       whatsappNumber: '923005557788',
       city: 'Lahore',
@@ -1588,16 +1565,45 @@ async function main() {
     },
   });
 
-  const user2 = await prisma.user.create({
+  const userZubair = await prisma.user.create({
+    data: {
+      email: 'zubair@applevault.pk',
+      name: 'Zubair Ahmed',
+      role: 'SHOPKEEPER',
+      isVerifiedShop: true,
+      shopName: 'The Apple Vault Saddar',
+      shopAddress: 'Shop G-18, Ground Floor, Star City Mall, Saddar, Karachi',
+      businessHours: 'Mon - Sat: 1:00 PM - 10:00 PM',
+      phone: '03332221100',
+      whatsappNumber: '923332221100',
+      city: 'Karachi',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    },
+  });
+
+  const userAli = await prisma.user.create({
     data: {
       email: 'ali@technologia.pk',
       name: 'Ali Raza',
-      role: 'USER',
+      role: 'ENTHUSIAST',
       isVerifiedShop: false,
       phone: '03214443322',
       whatsappNumber: '923214443322',
-      city: 'Karachi',
+      city: 'Lahore',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+    },
+  });
+
+  const userHamza = await prisma.user.create({
+    data: {
+      email: 'hamza@technologia.pk',
+      name: 'Hamza Tariq',
+      role: 'ENTHUSIAST',
+      isVerifiedShop: false,
+      phone: '03335559988',
+      whatsappNumber: '923335559988',
+      city: 'Islamabad',
+      avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=400&q=80',
     },
   });
 
@@ -1608,7 +1614,7 @@ async function main() {
   const listingsData = [
     // Phones
     {
-      userId: user1.id,
+      userId: userHamza.id,
       title: 'iPhone 13 Pro',
       category: 'PHONE',
       itemType: 'COMPLETE_UNIT',
@@ -1626,15 +1632,15 @@ async function main() {
       specsLockedNotes: 'Super Retina XDR OLED 120Hz ProMotion | Apple A15 Bionic | 6GB RAM',
       city: 'Lahore',
       locationArea: 'Hafeez Centre (Gulberg)',
-      sellerName: user1.name,
-      sellerPhone: user1.phone || '03001234567',
-      whatsappNumber: user1.whatsappNumber || '923001234567',
+      sellerName: 'Hamza Tech Plaza',
+      sellerPhone: '03001234567',
+      whatsappNumber: '923001234567',
       description: 'Original Sierra Blue, completely scratchless 10/10 condition. Official FBR PTA approved with box and original Type-C cable.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1632661674596-df8be070a5c5?auto=format&fit=crop&w=800&q=80']),
       isFeatured: true,
     },
     {
-      userId: user2.id,
+      userId: userZubair.id,
       title: 'Samsung Galaxy S23 Ultra',
       category: 'PHONE',
       itemType: 'COMPLETE_UNIT',
@@ -1652,15 +1658,14 @@ async function main() {
       specsLockedNotes: 'Dynamic AMOLED 2X 120Hz | Snapdragon 8 Gen 2 for Galaxy | 12GB LPDDR5X',
       city: 'Karachi',
       locationArea: 'Saddar (Star City Mall)',
-      sellerName: user2.name,
-      sellerPhone: user2.phone || '03332221100',
-      whatsappNumber: user2.whatsappNumber || '923332221100',
+      sellerName: userZubair.shopName || userZubair.name,
+      sellerPhone: userZubair.phone || '03332221100',
+      whatsappNumber: userZubair.whatsappNumber || '923332221100',
       description: 'Phantom Black, Dual Physical SIM, 12GB/512GB variant. Official PTA tax paid. Complete box, S-Pen works flawlessly.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1678911820864-e2c567c655d7?auto=format&fit=crop&w=800&q=80']),
       isFeatured: true,
     },
     {
-      userId: user1.id,
       title: 'Google Pixel 7 Pro',
       category: 'PHONE',
       itemType: 'COMPLETE_UNIT',
@@ -1676,17 +1681,16 @@ async function main() {
       cameraSpec: '50MP Triple 5x Optical Periscope',
       screenSize: '6.7 inches',
       specsLockedNotes: 'LTPO AMOLED 120Hz | Google Tensor G2 | 12GB LPDDR5',
-      city: 'Lahore',
-      locationArea: 'Hafeez Centre',
-      sellerName: user1.name,
-      sellerPhone: user1.phone || '03335551234',
-      whatsappNumber: user1.whatsappNumber || '923335551234',
+      city: 'Islamabad',
+      locationArea: 'Blue Area',
+      sellerName: 'Bilal Gadget Hub',
+      sellerPhone: '03335551234',
+      whatsappNumber: '923335551234',
       description: 'Hazel color, pristine screen with UV glass applied. CPID approved permanently on SIM 1. Legendary computational zoom.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1667053508464-eb11b394df83?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
     },
     {
-      userId: user2.id,
       title: 'Nothing Phone (2)',
       category: 'PHONE',
       itemType: 'COMPLETE_UNIT',
@@ -1702,11 +1706,11 @@ async function main() {
       cameraSpec: '50MP Dual Sony IMX890 OIS',
       screenSize: '6.7 inches',
       specsLockedNotes: 'LTPO OLED 120Hz | Snapdragon 8+ Gen 1 | 33-Zone Glyph',
-      city: 'Karachi',
-      locationArea: 'Saddar',
-      sellerName: user2.name,
-      sellerPhone: user2.phone || '03154443322',
-      whatsappNumber: user2.whatsappNumber || '923154443322',
+      city: 'Rawalpindi',
+      locationArea: 'Dubai Plaza (6th Road)',
+      sellerName: 'Sheraz Nothing Store',
+      sellerPhone: '03154443322',
+      whatsappNumber: '923154443322',
       description: 'Dark Grey transparent back with full Glyph LED notifications active. Non-PTA. Perfect for Wi-Fi or SCOM use.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
@@ -1714,7 +1718,7 @@ async function main() {
 
     // Laptops
     {
-      userId: user1.id,
+      userId: userUsman.id,
       title: 'Lenovo ThinkPad T480',
       category: 'LAPTOP',
       itemType: 'COMPLETE_UNIT',
@@ -1729,15 +1733,15 @@ async function main() {
       specsLockedNotes: 'Intel Core i5-8350U Quad-Core | 16GB RAM | Dual Battery (24Wh+24Wh)',
       city: 'Lahore',
       locationArea: 'Hafeez Centre (Gulberg)',
-      sellerName: user1.name,
-      sellerPhone: user1.phone || '03005557788',
-      whatsappNumber: user1.whatsappNumber || '923005557788',
+      sellerName: userUsman.shopName || userUsman.name,
+      sellerPhone: userUsman.phone || '03005557788',
+      whatsappNumber: userUsman.whatsappNumber || '923005557788',
       description: 'Original corporate pull, clean keyboard, pristine FHD IPS matte panel. Dual battery gives 5+ hours backup. 65W USB-C charger included.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=800&q=80']),
       isFeatured: true,
     },
     {
-      userId: user2.id,
+      userId: userHamza.id,
       title: 'Dell XPS 15 9570',
       category: 'LAPTOP',
       itemType: 'COMPLETE_UNIT',
@@ -1751,16 +1755,16 @@ async function main() {
       screenSize: '15.6 inches',
       specsLockedNotes: 'Intel Core i7-8750H 6-Core | GTX 1050 Ti Max-Q 4GB | 97Wh Battery',
       city: 'Karachi',
-      locationArea: 'Saddar',
-      sellerName: user2.name,
-      sellerPhone: user2.phone || '03451122334',
-      whatsappNumber: user2.whatsappNumber || '923451122334',
+      locationArea: 'Uni Plaza (I.I. Chundrigar)',
+      sellerName: userHamza.name,
+      sellerPhone: userHamza.phone || '03451122334',
+      whatsappNumber: userHamza.whatsappNumber || '923451122334',
       description: 'Silver aluminum and carbon fiber palm rest. 4K touchscreen display. Fresh thermal paste applied. 130W original Dell charger.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=800&q=80']),
       isFeatured: true,
     },
     {
-      userId: user2.id,
+      userId: userAli.id,
       title: 'Apple MacBook Air M1 (2020)',
       category: 'LAPTOP',
       itemType: 'COMPLETE_UNIT',
@@ -1773,17 +1777,16 @@ async function main() {
       storage: '256GB SSD',
       screenSize: '13.3 inches',
       specsLockedNotes: 'Apple M1 8-Core CPU / 7-Core GPU | 8GB Unified | Retina P3 TrueTone',
-      city: 'Karachi',
-      locationArea: 'Saddar (Star City Mall)',
-      sellerName: user2.name,
-      sellerPhone: user2.phone || '03314455667',
-      whatsappNumber: user2.whatsappNumber || '923314455667',
+      city: 'Islamabad',
+      locationArea: 'Blue Area',
+      sellerName: userAli.name,
+      sellerPhone: userAli.phone || '03314455667',
+      whatsappNumber: userAli.whatsappNumber || '923314455667',
       description: 'Space Gray, 94% battery health, only 78 battery cycles. Completely silent fanless operation. Includes box and 30W adapter.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
     },
     {
-      userId: user1.id,
       title: 'HP EliteBook 840 G5',
       category: 'LAPTOP',
       itemType: 'COMPLETE_UNIT',
@@ -1796,11 +1799,11 @@ async function main() {
       storage: '256GB NVMe SSD',
       screenSize: '14.0 inches',
       specsLockedNotes: 'Intel Core i5-8250U Quad-Core | 16GB DDR4 | Bang & Olufsen Sound',
-      city: 'Lahore',
-      locationArea: 'Hall Road',
-      sellerName: user1.name,
-      sellerPhone: user1.phone || '03129988776',
-      whatsappNumber: user1.whatsappNumber || '923129988776',
+      city: 'Rawalpindi',
+      locationArea: 'Saddar',
+      sellerName: 'Pindi IT Solutions',
+      sellerPhone: '03129988776',
+      whatsappNumber: '923129988776',
       description: 'All-metal aluminum unibody. Backlit keyboard, crisp 1080p IPS display, Bang & Olufsen sound. Battery gives 3-4 hours.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
@@ -1808,7 +1811,7 @@ async function main() {
 
     // Spare parts listings
     {
-      userId: user1.id,
+      userId: userUsman.id,
       title: 'Lenovo ThinkPad T480',
       category: 'LAPTOP',
       itemType: 'SPARE_PART',
@@ -1823,15 +1826,15 @@ async function main() {
       specsLockedNotes: '30-pin eDP connector | 1920x1080 IPS Matte 72% NTSC',
       city: 'Lahore',
       locationArea: 'Hall Road',
-      sellerName: user1.name,
-      sellerPhone: user1.phone || '03017778899',
-      whatsappNumber: user1.whatsappNumber || '923017778899',
+      sellerName: userUsman.shopName || userUsman.name,
+      sellerPhone: userUsman.phone || '03017778899',
+      whatsappNumber: userUsman.whatsappNumber || '923017778899',
       description: 'Original Innolux N140HCE-EN1 Rev.C2 panel. High color gamut 72% NTSC. Zero dead pixels guarantee.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
     },
     {
-      userId: user2.id,
+      userId: userZubair.id,
       title: 'Samsung Galaxy S22 Ultra',
       category: 'PHONE',
       itemType: 'SPARE_PART',
@@ -1846,9 +1849,9 @@ async function main() {
       specsLockedNotes: 'Original Sub-board with 45W Super Fast Charging 2.0 IC',
       city: 'Karachi',
       locationArea: 'Saddar (Star City Mall)',
-      sellerName: user2.name,
-      sellerPhone: user2.phone || '03348889900',
-      whatsappNumber: user2.whatsappNumber || '923348889900',
+      sellerName: userZubair.shopName || userZubair.name,
+      sellerPhone: userZubair.phone || '03348889900',
+      whatsappNumber: userZubair.whatsappNumber || '923348889900',
       description: 'Original charging connector flex sub-board. Fixes slow charging, OTG issues, and lower mic problems.',
       images: JSON.stringify(['https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80']),
       isFeatured: false,
@@ -1867,28 +1870,69 @@ async function main() {
   const iphoneListing = createdListings.find(l => l.model === 'iPhone 13 Pro') || createdListings[0];
 
   // ==========================================
-  // 6. SEED REVIEWS & REPUTATION
+  // 6. SEED REVIEWS & REPUTATION (Item as described, Communication 1-5, Undisclosed Faults)
   // ==========================================
   console.log('--- Seeding Verified Reputation & Reviews ---');
   await prisma.review.createMany({
     data: [
+      // Reviews for Usman Ghani (Verified Shopkeeper - Usman ThinkPads)
       {
-        reviewerId: user2.id,
-        revieweeId: user1.id,
+        reviewerId: userAli.id,
+        revieweeId: userUsman.id,
         listingId: t480Listing?.id,
         itemAsDescribed: true,
         communicationRating: 5,
         undisclosedFaults: false,
-        comment: 'Purchased ThinkPad T480. Dual batteries in 89% health, original keyboard. Usman bhai is 100% honest and courteous.',
+        comment: 'Purchased ThinkPad T480 from Shop #42 Hafeez Centre. Dual batteries in 89% health, original keyboard, zero chassis cracks. Usman bhai is 100% honest and courteous.',
       },
       {
-        reviewerId: user1.id,
-        revieweeId: user2.id,
+        reviewerId: userHamza.id,
+        revieweeId: userUsman.id,
+        listingId: t480Listing?.id,
+        itemAsDescribed: true,
+        communicationRating: 5,
+        undisclosedFaults: false,
+        comment: 'Tested thermals on Cinebench for 20 minutes right at the counter. Fast WhatsApp support and included original 65W Type-C adapter.',
+      },
+      {
+        reviewerId: userZubair.id,
+        revieweeId: userUsman.id,
+        listingId: t480Listing?.id,
+        itemAsDescribed: true,
+        communicationRating: 4,
+        undisclosedFaults: false,
+        comment: 'Professional business dealings, clean inventory and punctual delivery.',
+      },
+
+      // Reviews for Zubair Ahmed (Verified Shopkeeper - The Apple Vault Saddar)
+      {
+        reviewerId: userHamza.id,
+        revieweeId: userZubair.id,
         listingId: s23Listing?.id,
         itemAsDescribed: true,
         communicationRating: 5,
         undisclosedFaults: false,
-        comment: 'Bought Galaxy S23 Ultra from Ali. 100% official PTA approved with genuine invoice. Great seller.',
+        comment: 'Bought Galaxy S23 Ultra at Star City Mall Karachi. 100% official PTA approved with genuine invoice and box. Excellent shopkeeper.',
+      },
+      {
+        reviewerId: userAli.id,
+        revieweeId: userZubair.id,
+        listingId: s23Listing?.id,
+        itemAsDescribed: true,
+        communicationRating: 5,
+        undisclosedFaults: false,
+        comment: 'Very helpful staff in Saddar. Verified all IMEI on FBR DIRBS before payment.',
+      },
+
+      // Review for Ali Raza (Enthusiast Buyer)
+      {
+        reviewerId: userUsman.id,
+        revieweeId: userAli.id,
+        listingId: t480Listing?.id,
+        itemAsDescribed: true,
+        communicationRating: 5,
+        undisclosedFaults: false,
+        comment: 'Pleasure dealing with Ali bhai. Arrived on time at Hafeez Centre and paid full cash upon inspection.',
       },
     ],
   });
@@ -1900,7 +1944,7 @@ async function main() {
   if (t480Listing) {
     await prisma.savedListing.create({
       data: {
-        userId: user2.id,
+        userId: userAli.id,
         listingId: t480Listing.id,
       },
     });
@@ -1908,7 +1952,7 @@ async function main() {
   if (iphoneListing) {
     await prisma.savedListing.create({
       data: {
-        userId: user2.id,
+        userId: userAli.id,
         listingId: iphoneListing.id,
       },
     });
@@ -1921,16 +1965,23 @@ async function main() {
   await prisma.savedSearch.createMany({
     data: [
       {
-        userId: user2.id,
+        userId: userAli.id,
         name: 'Lenovo ThinkPad 16GB RAM in Lahore',
         criteria: JSON.stringify({ category: 'LAPTOP', brand: 'Lenovo', ram: 16, city: 'Lahore' }),
         targetType: 'LISTING',
         alertEmail: true,
       },
       {
-        userId: user1.id,
+        userId: userAli.id,
         name: 'iPhone 13 / 14 PTA Approved Under 200k',
         criteria: JSON.stringify({ category: 'PHONE', brand: 'Apple', ptaStatus: 'Official PTA Approved', maxPrice: 200000 }),
+        targetType: 'LISTING',
+        alertEmail: true,
+      },
+      {
+        userId: userHamza.id,
+        name: 'Dell XPS 15 32GB in Karachi',
+        criteria: JSON.stringify({ category: 'LAPTOP', brand: 'Dell', ram: 32, city: 'Karachi' }),
         targetType: 'LISTING',
         alertEmail: true,
       },
@@ -1938,28 +1989,28 @@ async function main() {
   });
 
   // ==========================================
-  // 9. SEED SOURCING REQUESTS & QUOTES (with strict [Part Name] - [Device Name] titles)
+  // 9. SEED SOURCING REQUESTS & QUOTES
   // ==========================================
   console.log('--- Seeding Sourcing Requests & Quotes ---');
   const req1 = await prisma.partRequest.create({
     data: {
-      userId: user1.id,
-      title: 'Screen / Display - Lenovo ThinkPad T480',
+      userId: userUsman.id,
+      title: 'Looking for 30-pin 1080p Matte IPS Panel (Innolux N140HCE-EN1) for ThinkPad T480',
       category: 'LAPTOP',
       deviceId: t480.id,
       partCatalogId: t480Panel.id,
       brand: 'Lenovo',
       model: 'ThinkPad T480',
-      partType: 'Screen / Display',
+      partType: 'Screen Panel',
       partNumber: 'N140HCE-EN1',
       acceptableConditions: JSON.stringify(['Brand New (OEM)', 'Working Pull / Used']),
       maxBudgetPKR: 12000,
       urgency: 'Urgent / Immediate',
-      description: 'Cracked my ThinkPad T480 FHD display while traveling. Looking for original 30-pin Innolux or LG panel in Lahore with on-spot test.',
+      description: 'Cracked my ThinkPad T480 FHD display while traveling. Looking for original 30-pin Innolux or LG panel in Lahore Hafeez Centre with on-spot test.',
       photoUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
-      buyerName: user1.name,
-      buyerPhone: user1.phone || '03004441122',
-      buyerWhatsapp: user1.whatsappNumber || '923004441122',
+      buyerName: userUsman.name,
+      buyerPhone: userUsman.phone || '03004441122',
+      buyerWhatsapp: userUsman.whatsappNumber || '923004441122',
       city: 'Lahore',
       locationArea: 'Hafeez Centre',
       status: 'OPEN',
@@ -1968,11 +2019,11 @@ async function main() {
           {
             offeredPrice: 11000,
             condition: 'Working Pull / Used (Grade A, No Marks)',
-            notes: 'Pulled from donor ThinkPad T480. Tested 100% zero dead pixels.',
-            sellerName: user2.name,
-            sellerPhone: user2.phone || '03017778899',
-            sellerWhatsapp: user2.whatsappNumber || '923017778899',
-            city: 'Karachi',
+            notes: 'Pulled from donor ThinkPad T480. Tested 100% zero dead pixels. Come to Shop #42 Hafeez Centre 2nd floor.',
+            sellerName: 'Waseem LCD Specialist',
+            sellerPhone: '03017778899',
+            sellerWhatsapp: '923017778899',
+            city: 'Lahore',
           },
         ],
       },
@@ -1981,128 +2032,114 @@ async function main() {
 
   const req2 = await prisma.partRequest.create({
     data: {
-      userId: user2.id,
-      title: 'Screen / Display - Apple iPhone 13 Pro',
+      userId: userHamza.id,
+      title: 'Need OEM Super Retina 120Hz Screen for iPhone 13 Pro (Blue Area Islamabad)',
       category: 'PHONE',
       deviceId: iphone13Pro.id,
       partCatalogId: iphone13ProScreen.id,
       brand: 'Apple',
       model: 'iPhone 13 Pro',
-      partType: 'Screen / Display',
+      partType: 'Screen Panel',
       partNumber: 'A2638-OLED-OEM',
       acceptableConditions: JSON.stringify(['Working Pull / Used']),
       maxBudgetPKR: 35000,
       urgency: 'Urgent / Immediate',
-      description: 'Dropped phone, green line on OLED. Looking for genuine original pull with TrueTone serial transplant.',
+      description: 'Dropped phone, green line on OLED. Looking for genuine original pull with TrueTone serial transplant in Islamabad.',
       photoUrl: 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?auto=format&fit=crop&w=800&q=80',
-      buyerName: user2.name,
-      buyerPhone: user2.phone || '03335559988',
-      buyerWhatsapp: user2.whatsappNumber || '923335559988',
-      city: 'Karachi',
-      locationArea: 'Saddar',
+      buyerName: userHamza.name,
+      buyerPhone: userHamza.phone || '03335559988',
+      buyerWhatsapp: userHamza.whatsappNumber || '923335559988',
+      city: 'Islamabad',
+      locationArea: 'Blue Area',
       status: 'OPEN',
       quotes: {
         create: [
           {
             offeredPrice: 33000,
             condition: 'Original Pull from iCloud-locked unit (Clean Glass)',
-            notes: '100% original OLED 120Hz. Free TrueTone programmer copy included.',
-            sellerName: user1.name,
-            sellerPhone: user1.phone || '03312233445',
-            sellerWhatsapp: user1.whatsappNumber || '923312233445',
-            city: 'Lahore',
+            notes: '100% original OLED 120Hz. Free TrueTone programmer copy included at our Blue Area shop.',
+            sellerName: 'Capital Apple Experts',
+            sellerPhone: '03312233445',
+            sellerWhatsapp: '923312233445',
+            city: 'Islamabad',
           },
         ],
       },
     },
   });
 
-  const req3 = await prisma.partRequest.create({
-    data: {
-      userId: user1.id,
-      title: 'Battery / Charger - Lenovo ThinkPad T480',
-      category: 'LAPTOP',
-      deviceId: t480.id,
-      partCatalogId: t480Bat.id,
-      brand: 'Lenovo',
-      model: 'ThinkPad T480',
-      partType: 'Battery / Charger',
-      partNumber: '01AV421',
-      acceptableConditions: JSON.stringify(['Brand New (OEM)', 'Working Pull / Used']),
-      maxBudgetPKR: 7000,
-      urgency: 'Flexible',
-      description: 'Internal 24Wh battery degraded to 45%. Need replacement OEM pack for dual battery setup.',
-      buyerName: user1.name,
-      buyerPhone: user1.phone || '03005557788',
-      buyerWhatsapp: user1.whatsappNumber || '923005557788',
-      city: 'Lahore',
-      locationArea: 'Hafeez Centre',
-      status: 'OPEN',
-    },
-  });
-
-  const req4 = await prisma.partRequest.create({
-    data: {
-      userId: user2.id,
-      title: 'Charging Port / Flex - Samsung Galaxy S22 Ultra',
-      category: 'PHONE',
-      deviceId: s22Ultra.id,
-      partCatalogId: s22UltraPort.id,
-      brand: 'Samsung',
-      model: 'Galaxy S22 Ultra',
-      partType: 'Charging Port / Flex',
-      partNumber: 'SM-S908B-SUB',
-      acceptableConditions: JSON.stringify(['Brand New (OEM)']),
-      maxBudgetPKR: 4500,
-      urgency: 'Flexible',
-      description: 'Getting moisture warning when charging. Need OEM sub-board replacement.',
-      buyerName: user2.name,
-      buyerPhone: user2.phone || '03214443322',
-      buyerWhatsapp: user2.whatsappNumber || '923214443322',
-      city: 'Karachi',
-      locationArea: 'Saddar',
-      status: 'OPEN',
-    },
-  });
-
   // ==========================================
-  // 10. SEED CONTEXT-AWARE CHAT SESSIONS
+  // 10. SEED CONTEXT-AWARE CHAT SESSIONS & LEGACY THREADS
   // ==========================================
   console.log('--- Seeding Context-Aware Chat Sessions ---');
   if (t480Listing) {
     await prisma.chatSession.create({
       data: {
         listingId: t480Listing.id,
-        buyerId: user2.id,
-        sellerId: user1.id,
+        buyerId: userAli.id,
+        sellerId: userUsman.id,
         title: `Discussion: ${t480Listing.title}`,
-        buyerName: user2.name,
-        sellerName: user1.name,
-        sellerWhatsapp: user1.whatsappNumber || '923005557788',
+        buyerName: userAli.name,
+        sellerName: userUsman.shopName || userUsman.name,
+        sellerWhatsapp: userUsman.whatsappNumber || '923005557788',
         itemPrice: t480Listing.price,
         itemCity: t480Listing.city,
-        lastMessage: 'Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
+        lastMessage: 'Salam Usman bhai! Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
         unreadBuyer: 0,
         unreadSeller: 1,
         messages: {
           create: [
             {
               senderRole: 'BUYER',
-              senderName: user2.name,
-              senderId: user2.id,
-              text: 'Assalam-o-Alaikum! Is this ThinkPad T480 still available?',
+              senderName: userAli.name,
+              senderId: userAli.id,
+              text: 'Assalam-o-Alaikum Usman bhai! Is this ThinkPad T480 still available at your 2nd floor shop in Hafeez Centre?',
             },
             {
               senderRole: 'SELLER',
-              senderName: user1.name,
-              senderId: user1.id,
-              text: 'Walaikum Assalam! Yes, available. It has the dual battery setup (internal 24Wh + external 24Wh), 1080p IPS matte display, and original 65W charger.',
+              senderName: userUsman.name,
+              senderId: userUsman.id,
+              text: 'Walaikum Assalam Ali bhai! Yes, available. It has the dual battery setup (internal 24Wh + external 24Wh), 1080p IPS matte display, and original 65W charger.',
             },
             {
               senderRole: 'BUYER',
-              senderName: user2.name,
-              senderId: user2.id,
-              text: 'Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
+              senderName: userAli.name,
+              senderId: userAli.id,
+              text: 'Salam Usman bhai! Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
+            },
+          ],
+        },
+      },
+    });
+
+    // Also populate legacy chatThread for backward compatibility
+    await prisma.chatThread.create({
+      data: {
+        title: 'Discussion: ThinkPad T480 (Usman ThinkPads)',
+        entityType: 'LISTING',
+        entityId: t480Listing.id,
+        buyerName: userAli.name,
+        sellerName: userUsman.shopName || userUsman.name,
+        sellerWhatsapp: userUsman.whatsappNumber || '923005557788',
+        itemPrice: t480Listing.price,
+        itemCity: t480Listing.city,
+        lastMessage: 'Salam Usman bhai! Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
+        messages: {
+          create: [
+            {
+              senderRole: 'BUYER',
+              senderName: userAli.name,
+              text: 'Assalam-o-Alaikum Usman bhai! Is this ThinkPad T480 still available at your 2nd floor shop in Hafeez Centre?',
+            },
+            {
+              senderRole: 'SELLER',
+              senderName: userUsman.name,
+              text: 'Walaikum Assalam Ali bhai! Yes, available. It has the dual battery setup (internal 24Wh + external 24Wh), 1080p IPS matte display, and original 65W charger.',
+            },
+            {
+              senderRole: 'BUYER',
+              senderName: userAli.name,
+              text: 'Salam Usman bhai! Can we meet at Hafeez Centre tomorrow afternoon to check the battery health?',
             },
           ],
         },
